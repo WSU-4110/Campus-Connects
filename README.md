@@ -32,7 +32,8 @@ To get a local copy of this project up and running, follow these simple steps:
 - [Expo CLI](https://docs.expo.dev/get-started/installation/)
 - [Git](https://git-scm.com/)
 
-### Installation
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/WSU-4110/Campus-Connects.git
+# Authors
+* Ifrat Jahan
+* Brooke Bui
+* James Lui
+* Hiba Kabir

@@ -20,12 +20,8 @@ Campus Connects is a campus navigation app designed to help students and visitor
 ## Technologies
 - **Frontend**: Expo, React Native
 - **Backend**: Firebase
-- **API**: ??
+- **API**: Google Map API
 - **State Management**: React Context API
-
-## Getting Started
-
-To get a local copy of this project up and running, follow these simple steps:
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/)

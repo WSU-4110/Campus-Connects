@@ -31,5 +31,5 @@ Campus Connects is a campus navigation app designed to help students and visitor
 # Authors
 * Ifrat Jahan
 * Brooke Bui
-* James Lui
+* James Liu
 * Hiba Kabir

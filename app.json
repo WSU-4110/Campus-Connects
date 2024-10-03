@@ -1,16 +1,5 @@
 {
   "expo": {
-<<<<<<< HEAD
-    "name": "campusconnects",
-    "slug": "campusconnects",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/splash.png",
-=======
     "name": "campusconnects1",
     "slug": "campusconnects1",
     "version": "1.0.0",
@@ -19,18 +8,10 @@
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
->>>>>>> main
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-<<<<<<< HEAD
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-=======
       "supportsTablet": true,
       "config": {
         "googleMapsApiKey": "AIzaSyDErTBfHz5vRT8AafrF1B5PgErR8MKJAsk"
@@ -39,28 +20,14 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
->>>>>>> main
         "backgroundColor": "#ffffff"
       }
     },
     "web": {
-<<<<<<< HEAD
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
-    "plugins": [
-      "expo-router"
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
-=======
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router"
     ]
->>>>>>> main
   }
 }

@@ -1,8 +1,7 @@
 {
   "name": "campusconnects",
-  "main": "expo-router/entry",
-  "version": "1.0.0",
   "main": "expo/AppEntry.js",
+  "version": "1.0.0",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -17,6 +16,7 @@
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
     "@react-navigation/stack": "^6.4.1",
+    "@types/react": "~18.2.79",
     "expo": "~51.0.36",
     "expo-constants": "~16.0.2",
     "expo-linking": "~6.3.1",
@@ -32,7 +32,8 @@
     "react-native-safe-area-context": "4.10.5",
     "react-native-screens": "3.31.1",
     "react-native-web": "~0.19.10",
-    "react-navigation": "^5.0.0"
+    "react-navigation": "^5.0.0",
+    "typescript": "~5.3.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

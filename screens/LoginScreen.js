@@ -22,15 +22,25 @@ const LoginScreen = () => {
   }, [navigation]);
   
 
-  const handleLogin = () => {
-    auth
-    signInWithEmailAndPassword(auth, email, password)
-    .then(userCredentials => {
+  const handleLogin = async () => {
+    try {
+      const userCredentials = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredentials.user;
-      console.log('Logged in with:', user.email);
-    })
-    .catch(error => alert(error.message))
-  }
+
+      // Check if the email is verified
+      await user.reload(); // Reload the user to get updated information
+      if (user.emailVerified) {
+        // Email is verified, navigate to Home
+        navigation.navigate("Home");
+      } else {
+        // Sign out the user if the email is not verified
+        await auth.signOut();
+        alert("Please verify your email before logging in.");
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };
 
   return (
     <KeyboardAvoidingView 

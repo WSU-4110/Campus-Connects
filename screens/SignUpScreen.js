@@ -2,7 +2,7 @@ import { KeyboardAvoidingView, StyleSheet, Text, TextInput, TouchableOpacity, Vi
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../firebase';
-import {createUserWithEmailAndPassword } from '../firebase';
+import {createUserWithEmailAndPassword, sendEmailVerification, checkEmailVerification} from 'firebase/auth';
 
 const SignUpScreen = () => {
   const [name, setName] = useState('');
@@ -12,26 +12,31 @@ const SignUpScreen = () => {
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
+    
       if (user) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Home" }],
-        });
       }
     });
     return unsubscribe;
   }, [navigation]);
   
 
-  const handleSignUp = () => {
-    auth
-    createUserWithEmailAndPassword(auth, email, password, name)
-    .then(userCredentials => {
-        const user = userCredentials.user;
-        console.log(user.email);
-    })
-    .catch(error => alert(error.message))
+  const handleSignUp = async () => {
+    try {
+      const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredentials.user;
+
+      // will send verification email
+      await sendEmailVerification(user);
+      alert("Verification email sent! Please check your inbox.");
+
+      // will sign out the user after sending verification email
+      await auth.signOut();
+      navigation.navigate("Login"); 
+    } catch (error) {
+      alert(error.message);
+    }
   }
+
 
   return (
     <KeyboardAvoidingView 

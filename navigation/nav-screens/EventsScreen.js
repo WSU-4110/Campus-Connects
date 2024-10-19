@@ -1,96 +1,67 @@
-import React from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity } from 'react-native';
-
-const eventsData = [
-  {
-    id: '1',
-    title: 'Green Warriors General Body Meeting',
-    date: '2024-10-3',
-    time: '6:15 PM - 8:00 PM',
-    description: 'Overview and fun new updates on what to expect from PBS.',
-    location: 'Student Center 301',
-  },
-  {
-    id: '2',
-    title: 'Oktoberfest',
-    date: '2024-10-3',
-    time: '11:00 AM - 3:00 PM',
-    description: 'Enjoy a fun day of German-inspired eats and treats at the Towers Cafe.',
-    location: 'Towers Cafe',
-  },
-  {
-    id: '3',
-    title: 'WSU All-Majors In-Person Career Fair',
-    date: '2024-10-10',
-    time: '12:00 PM - 5:00 PM',
-    description: 'Meet employers and explore job opportunities.',
-    location: '2nd Floor Student Center',
-  },
-  {
-    id: '4',
-    title: 'Grief and Loss Support Group',
-    date: '2024-10-15',
-    time: '4:00 PM - 5:00 PM',
-    description: 'Offers support to students who are struggling with loss.',
-    location: 'Online',
-  },
-  {
-    id: '5',
-    title: 'WSU AIGA Bake Sale',
-    date: '2024-10-8',
-    time: '12:00 PM - 3:00 PM',
-    description: 'An autumn themed bake sake, all proceeds go to support club events.',
-    location: 'Student Center',
-  },
-];
-
-const groupEventsByDate = (events) => {
-  return events.reduce((acc, event) => {
-    (acc[event.date] = acc[event.date] || []).push(event);
-    return acc;
-  }, {});
-};
-
-const formatDate = (dateString) => {
-  const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', options);
-}
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Button } from 'react-native';
+import { db, auth } from '../../firebase'; // Import Firestore and Auth
+import { collection, getDocs } from 'firebase/firestore'; // Firestore functions
+import CreateEventScreen from './CreateEventScreen'; // Import the new CreateEventScreen
 
 const EventsScreen = () => {
-  const groupedEvents = groupEventsByDate(eventsData);
-  const eventDates = Object.keys(groupedEvents);
+  const [eventsData, setEventsData] = useState([]); // To store events from Firestore
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false); // To toggle event creation form
 
+  // Function to fetch events from Firestore
+  const fetchEvents = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'events'));
+      const eventsArray = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-  const renderEventItem = ({ item }) => (
-    <TouchableOpacity style={styles.eventCard}>
-      <Text style={styles.eventTitle}>{item.title}</Text>
-      <Text style={styles.eventDate}>{item.time}</Text>
-      <Text style={styles.eventDescription}>{item.description}</Text>
-    </TouchableOpacity>
-  );
+      // Get the current user's ID
+      const userId = auth.currentUser.uid;
 
-  const renderDateHeader = (date) => (
-    <Text style={styles.dateHeader}>{formatDate(date)}</Text>
-  );
+      // Filter events to show only public events and private events created by the current user
+      const filteredEvents = eventsArray.filter(event => 
+        event.isPublic || event.createdBy === userId
+      );
+
+      setEventsData(filteredEvents);
+    } catch (error) {
+      console.error("Error fetching events: ", error);
+    }
+  };
+
+  // Call fetchEvents when the component mounts
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  // Function to refresh events after creating a new one
+  const handleEventCreated = () => {
+    fetchEvents();
+    setIsCreatingEvent(false); // Hide the create event form after creation
+  };
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={eventDates}
-        keyExtractor={(item) => item}
-        renderItem={({ item }) => (
-          <>
-            {renderDateHeader(item)}
-            <FlatList
-              data={groupedEvents[item]}
-              renderItem={renderEventItem}
-              keyExtractor={(event) => event.id}
-              style={styles.eventList}
-            />
-          </>
-        )}
-      />
+      <Button title="Create New Event" onPress={() => setIsCreatingEvent(true)} />
+      
+      {isCreatingEvent ? (
+        <CreateEventScreen onEventCreated={handleEventCreated} />
+      ) : (
+        <FlatList
+          data={eventsData}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={styles.eventCard}>
+              <Text style={styles.eventTitle}>{item.title}</Text>
+              <Text style={styles.eventDate}>{item.date}</Text>
+              <Text style={styles.eventDescription}>{item.description}</Text>
+              <Text>{item.isPublic ? "Public" : "Private"}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </View>
   );
 };
@@ -100,33 +71,14 @@ export default EventsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 0,
-    paddingBottom: 0,
-    paddingLeft: 8,
-    paddingRight: 8,
-    backgroundColor: '#f3f4f3',
-  },
-  dateHeader: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginVertical: 10,
-    marginTop: 15,
-    color: '#333',
-  },
-  eventList: {
-    paddingBottom: 0,
+    padding: 16,
+    backgroundColor: '#f3f4f3',//background color for events page
   },
   eventCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#ffffff', //color of the events cards,
     padding: 15,
     marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    borderRadius: 5,
     elevation: 3,
   },
   eventTitle: {
@@ -136,7 +88,6 @@ const styles = StyleSheet.create({
   eventDate: {
     fontSize: 14,
     color: '#888',
-    marginVertical: 4,
   },
   eventDescription: {
     fontSize: 14,

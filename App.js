@@ -1,3 +1,4 @@
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -6,6 +7,9 @@ import LoginScreen from './screens/LoginScreen';
 import WelcomeScreen from './screens/WelcomeScreen';
 import SignUpScreen from './screens/SignUpScreen'; 
 import MainContainer from './navigation/MainContainer'; 
+import EventsScreen from './navigation/nav-screens/EventsScreen';
+import PersonalEventsScreen from './navigation/nav-screens/PersonalEventsScreen';
+import CreateEventScreen from './navigation/nav-screens/CreateEventScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -33,6 +37,9 @@ export default function App() {
           name="SignUp"
           component={SignUpScreen}
         />
+        <Stack.Screen name="Events" component={EventsScreen} />
+        <Stack.Screen name="PersonalEvents" component={PersonalEventsScreen} />
+        <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>

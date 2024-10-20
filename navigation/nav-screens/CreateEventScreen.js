@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { StyleSheet, TextInput, Button, Switch, Text, View, Alert } from 'react-native';
 import { db, auth } from '../../firebase'; // Import Firestore and Auth
 import { collection, addDoc } from 'firebase/firestore'; // Firestore functions
+import { useNavigation } from '@react-navigation/native';
 
-const CreateEventScreen = ({ onEventCreated }) => {
+const CreateEventScreen = () => {
+  const navigation = useNavigation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -35,6 +37,7 @@ const CreateEventScreen = ({ onEventCreated }) => {
       // Add the event to Firestore in the 'events' collection
       await addDoc(collection(db, "events"), eventData);
       Alert.alert("Event created successfully!");
+      navigation.goBack(); // Go back to the previous screen
 
       // Clear the form
       setTitle('');
@@ -42,9 +45,6 @@ const CreateEventScreen = ({ onEventCreated }) => {
       setLocation('');
       setDate('');
       setIsPublic(false);
-
-      // Call the parent function to refresh events
-      onEventCreated();
     } catch (error) {
       console.error("Error adding event: ", error);
       Alert.alert("Failed to create event");

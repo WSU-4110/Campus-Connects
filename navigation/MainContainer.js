@@ -23,14 +23,12 @@ export default function MainContainer() {
                         iconName = focused ? 'calendar' : 'calendar-outline';
                     }
 
-
                     return <Ionicons name={iconName} size={size} color={color} />;
                 },
+                tabBarActiveTintColor: '#0C5449',
+                tabBarInactiveTintColor: 'grey',
+                tabBarStyle: { display: 'flex' },
             })}
-            tabBarOptions={{
-                activeTintColor: '#0C5449',
-                inactiveTintColor: 'grey',
-            }}
         >
             <Tab.Screen 
                 name="Events" 
@@ -53,7 +51,6 @@ export default function MainContainer() {
                     headerTitle: 'Profile' 
                 }} 
             />
-            
         </Tab.Navigator>
     );
 }

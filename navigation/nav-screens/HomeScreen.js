@@ -3,10 +3,8 @@ import { StyleSheet, View, TextInput, Alert, Modal, Text, TouchableOpacity, Flat
 import MapView, { Marker, Polygon, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 
-// Replace this with your actual API key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyDErTBfHz5vRT8AafrF1B5PgErR8MKJAsk';
 
-// Expanded Wayne State University area boundaries
 const WSU_BOUNDARIES = [
   { latitude: 42.364250, longitude: -83.080500 }, // Northwest
   { latitude: 42.364250, longitude: -83.058500 }, // Northeast

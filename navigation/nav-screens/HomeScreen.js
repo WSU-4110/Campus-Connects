@@ -43,53 +43,57 @@ const WSU_REGION = {
   longitudeDelta: Math.abs(WSU_BOUNDARIES[0].longitude - WSU_BOUNDARIES[1].longitude) * 1.5 * ASPECT_RATIO,
 };
 
-const HomeScreen = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [region, setRegion] = useState({
-    latitude: 42.357341,
-    longitude: -83.069711,
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
-  });
-  const [places, setPlaces] = useState([]);
-  const [selectedPlace, setSelectedPlace] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [autocompleteResults, setAutocompleteResults] = useState([]);
-  const [activeFilter, setActiveFilter] = useState(null);
-  const mapRef = useRef(null);
+// Observer (Subject)
+class PlacesObserver {
+  constructor() {
+    this.observers = [];
+    this.places = [];
+    this.selectedPlace = null;
+    this.searchQuery = '';
+    this.autocompleteResults = [];
+    this.activeFilter = null;
+  }
 
-  const fetchAutocomplete = async (input) => {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&location=${region.latitude},${region.longitude}&radius=2000&key=${GOOGLE_MAPS_API_KEY}`
-      );
-      const data = await response.json();
-      if (data.status === 'OK') {
-        setAutocompleteResults(data.predictions);
-      }
-    } catch (error) {
-      console.error('Error fetching autocomplete results:', error);
-    }
-  };
+  subscribe(observer) {
+    this.observers.push(observer);
+  }
 
-  const fetchPlaceDetails = async (placeId) => {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,geometry,formatted_address,rating,types&key=${GOOGLE_MAPS_API_KEY}`
-      );
-      const data = await response.json();
-      if (data.status === 'OK') {
-        return data.result;
-      }
-    } catch (error) {
-      console.error('Error fetching place details:', error);
-    }
-    return null;
-  };
+  unsubscribe(observer) {
+    this.observers = this.observers.filter(obs => obs !== observer);
+  }
 
-  const fetchPlaces = async (query = '', filterType = null) => {
+  notify() {
+    this.observers.forEach(observer => observer(this));
+  }
+
+  setPlaces(places) {
+    this.places = places;
+    this.notify();
+  }
+
+  setSelectedPlace(place) {
+    this.selectedPlace = place;
+    this.notify();
+  }
+
+  setSearchQuery(query) {
+    this.searchQuery = query;
+    this.notify();
+  }
+
+  setAutocompleteResults(results) {
+    this.autocompleteResults = results;
+    this.notify();
+  }
+
+  setActiveFilter(filter) {
+    this.activeFilter = filter;
+    this.notify();
+  }
+
+  async fetchPlaces(query = '', filterType = null) {
     try {
-      let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${region.latitude},${region.longitude}&radius=2000&key=${GOOGLE_MAPS_API_KEY}`;
+      let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${WSU_REGION.latitude},${WSU_REGION.longitude}&radius=2000&key=${GOOGLE_MAPS_API_KEY}`;
       
       if (filterType) {
         url += `&type=${filterType}`;
@@ -105,10 +109,9 @@ const HomeScreen = () => {
             longitude: place.geometry.location.lng
           }, WSU_BOUNDARIES)
         );
-        setPlaces(filteredPlaces);
+        this.setPlaces(filteredPlaces);
         if (filteredPlaces.length > 0) {
-          setSelectedPlace(filteredPlaces[0]);
-          setModalVisible(true);
+          this.setSelectedPlace(filteredPlaces[0]);
         } else {
           Alert.alert('No Results', 'No places found for the selected filter in this area.');
         }
@@ -119,15 +122,59 @@ const HomeScreen = () => {
       console.error('Error fetching places:', error);
       Alert.alert('Error', 'An error occurred while fetching places.');
     }
-  };
+  }
+
+  async fetchAutocomplete(input) {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&location=${WSU_REGION.latitude},${WSU_REGION.longitude}&radius=2000&key=${GOOGLE_MAPS_API_KEY}`
+      );
+      const data = await response.json();
+      if (data.status === 'OK') {
+        this.setAutocompleteResults(data.predictions);
+      }
+    } catch (error) {
+      console.error('Error fetching autocomplete results:', error);
+    }
+  }
+
+  async fetchPlaceDetails(placeId) {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,geometry,formatted_address,rating,types&key=${GOOGLE_MAPS_API_KEY}`
+      );
+      const data = await response.json();
+      if (data.status === 'OK') {
+        this.setSelectedPlace(data.result);
+        this.setPlaces([data.result]);
+      }
+    } catch (error) {
+      console.error('Error fetching place details:', error);
+    }
+  }
+}
+
+const placesObserver = new PlacesObserver();
+
+const HomeScreen = () => {
+  const [, forceUpdate] = useState();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [region, setRegion] = useState(WSU_REGION);
+  const mapRef = useRef(null);
 
   useEffect(() => {
-    if (searchQuery.length > 2) {
-      fetchAutocomplete(searchQuery);
+    const updateComponent = () => forceUpdate({});
+    placesObserver.subscribe(updateComponent);
+    return () => placesObserver.unsubscribe(updateComponent);
+  }, []);
+
+  useEffect(() => {
+    if (placesObserver.searchQuery.length > 2) {
+      placesObserver.fetchAutocomplete(placesObserver.searchQuery);
     } else {
-      setAutocompleteResults([]);
+      placesObserver.setAutocompleteResults([]);
     }
-  }, [searchQuery]);
+  }, [placesObserver.searchQuery]);
 
   useEffect(() => {
     if (mapRef.current) {
@@ -140,36 +187,34 @@ const HomeScreen = () => {
 
   const handleSearch = async (placeId = null) => {
     if (placeId) {
-      const placeDetails = await fetchPlaceDetails(placeId);
-      if (placeDetails) {
-        setSelectedPlace(placeDetails);
-        setModalVisible(true);
-        setRegion({
-          ...region,
-          latitude: placeDetails.geometry.location.lat,
-          longitude: placeDetails.geometry.location.lng,
-        });
-        setPlaces([placeDetails]);
-      }
+      await placesObserver.fetchPlaceDetails(placeId);
+      setModalVisible(true);
+      setRegion({
+        ...region,
+        latitude: placesObserver.selectedPlace.geometry.location.lat,
+        longitude: placesObserver.selectedPlace.geometry.location.lng,
+      });
     } else {
-      fetchPlaces(searchQuery, activeFilter);
+      await placesObserver.fetchPlaces(placesObserver.searchQuery, placesObserver.activeFilter);
+      setModalVisible(true);
     }
-    setAutocompleteResults([]);
+    placesObserver.setAutocompleteResults([]);
   };
 
   const handleMarkerPress = (place) => {
-    setSelectedPlace(place);
+    placesObserver.setSelectedPlace(place);
     setModalVisible(true);
   };
 
   const clearSearch = () => {
-    setSearchQuery('');
-    setAutocompleteResults([]);
+    placesObserver.setSearchQuery('');
+    placesObserver.setAutocompleteResults([]);
   };
 
   const handleFilterPress = (filterId) => {
-    setActiveFilter(activeFilter === filterId ? null : filterId);
-    fetchPlaces('', activeFilter === filterId ? null : filterId);
+    const newFilter = placesObserver.activeFilter === filterId ? null : filterId;
+    placesObserver.setActiveFilter(newFilter);
+    placesObserver.fetchPlaces('', newFilter);
   };
 
   return (
@@ -179,12 +224,12 @@ const HomeScreen = () => {
         <TextInput
           style={styles.searchBar}
           placeholder="Search buildings or businesses..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
+          value={placesObserver.searchQuery}
+          onChangeText={(text) => placesObserver.setSearchQuery(text)}
           onSubmitEditing={() => handleSearch()}
           returnKeyType="search"
         />
-        {searchQuery.length > 0 && (
+        {placesObserver.searchQuery.length > 0 && (
           <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
             <Ionicons name="close-circle" size={20} color="gray" />
           </TouchableOpacity>
@@ -196,25 +241,25 @@ const HomeScreen = () => {
             key={filter.id}
             style={[
               styles.filterButton,
-              activeFilter === filter.id && styles.activeFilterButton
+              placesObserver.activeFilter === filter.id && styles.activeFilterButton
             ]}
             onPress={() => handleFilterPress(filter.id)}
           >
-            <Ionicons name={filter.icon} size={20} color={activeFilter === filter.id ? 'white' : 'black'} />
-            <Text style={[styles.filterText, activeFilter === filter.id && styles.activeFilterText]}>
+            <Ionicons name={filter.icon} size={20} color={placesObserver.activeFilter === filter.id ? 'white' : 'black'} />
+            <Text style={[styles.filterText, placesObserver.activeFilter === filter.id && styles.activeFilterText]}>
               {filter.label}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
-      {autocompleteResults.length > 0 && (
+      {placesObserver.autocompleteResults.length > 0 && (
         <FlatList
-          data={autocompleteResults}
+          data={placesObserver.autocompleteResults}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.autocompleteItem}
               onPress={() => {
-                setSearchQuery(item.description);
+                placesObserver.setSearchQuery(item.description);
                 handleSearch(item.place_id);
               }}
             >
@@ -226,7 +271,7 @@ const HomeScreen = () => {
         />
       )}
       <MapView
-        key="mainMap"
+        ref={mapRef}
         style={styles.map}
         initialRegion={region}
         onRegionChangeComplete={setRegion}
@@ -239,7 +284,7 @@ const HomeScreen = () => {
           strokeColor="rgba(0, 0, 255, 0.3)"
           strokeWidth={2}
         />
-        {places.map((place, index) => (
+        {placesObserver.places.map((place, index) => (
           <Marker
             key={index}
             coordinate={{
@@ -258,18 +303,17 @@ const HomeScreen = () => {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        {console.log('Modal visible:', modalVisible)}
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            {selectedPlace && (
+            {placesObserver.selectedPlace && (
               <>
-                <Text style={styles.modalTitle}>{selectedPlace.name}</Text>
-                <Text style={styles.modalText}>Address: {selectedPlace.formatted_address}</Text>
-                {selectedPlace.rating && (
-                  <Text style={styles.modalText}>Rating: {selectedPlace.rating} / 5</Text>
+                <Text style={styles.modalTitle}>{placesObserver.selectedPlace.name}</Text>
+                <Text style={styles.modalText}>Address: {placesObserver.selectedPlace.formatted_address}</Text>
+                {placesObserver.selectedPlace.rating && (
+                  <Text style={styles.modalText}>Rating: {placesObserver.selectedPlace.rating} / 5</Text>
                 )}
-                {selectedPlace.types && (
-                  <Text style={styles.modalText}>Type: {selectedPlace.types.join(', ')}</Text>
+                {placesObserver.selectedPlace.types && (
+                  <Text style={styles.modalText}>Type: {placesObserver.selectedPlace.types.join(', ')}</Text>
                 )}
               </>
             )}
@@ -310,7 +354,7 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 16,
     paddingLeft: 10,
-    paddingRight: 30, // Add padding to prevent text from going under the clear button
+    paddingRight: 30,
   },
   clearButton: {
     position: 'absolute',
@@ -365,7 +409,7 @@ const styles = StyleSheet.create({
   },
   autocompleteList: {
     position: 'absolute',
-    top: 90, // Adjust based on your layout
+    top: 90,
     left: 10,
     right: 10,
     backgroundColor: 'white',

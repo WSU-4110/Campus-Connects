@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl, AppState, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl, AppState, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const fetchEvents = async () => {
@@ -33,9 +33,17 @@ const fetchEvents = async () => {
   }
 };
 
-// Strip HTML tags from the event description
+// Strip HTML from the event description, adjust spacing 
 const stripHtmlTags = (html) => {
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (typeof html !== 'string') {
+    return ''; // Return an empty string if input is not a string
+  }
+  return html
+    .replace(/<[^>]*>/g, ' ')  // Remove HTML tags
+    .replace(/&nbsp;/g, ' ')   // Replace &nbsp; with space
+    .replace(/&[a-z]+;/gi, ' ')  // Replace other HTML entities with space
+    .replace(/\s+/g, ' ')      // Replace multiple spaces with single space
+    .trim();                   // Remove leading and trailing spaces
 };
 
 const EventsScreen = () => {
@@ -47,6 +55,8 @@ const EventsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const appState = useRef(AppState.currentState);
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const fetchEventsData = useCallback(async () => { 
     try {
@@ -79,7 +89,7 @@ const EventsScreen = () => {
 
     // Listen for app state changes
     const subscription = AppState.addEventListener('change', nextAppState => {
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') { // If app is inactive, fetch events
         console.log('App is active');
         fetchEventsData();
       }
@@ -92,10 +102,20 @@ const EventsScreen = () => {
     };
   }, [fetchEventsData]);
 
-  const onRefresh = useCallback(() => { // Refresh events
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchEventsData();
   }, [fetchEventsData]);
+
+  const openEventDetails = (event) => {
+    setSelectedEvent(event);
+    setModalVisible(true);
+  };
+
+  const closeEventDetails = () => {
+    setModalVisible(false);
+    setSelectedEvent(null);
+  };
 
   if (loading) { // Loading indicator
     return (
@@ -110,7 +130,7 @@ const EventsScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.link}>Recent Events ({events.length})</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('PersonalEvents')}>
+        <TouchableOpacity onPress={() => navigation.navigate('PersonalEvents')}> 
           <Text style={styles.link}>My Events</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('CreateEvent')}>
@@ -120,26 +140,64 @@ const EventsScreen = () => {
       {events.length === 0 ? (
         <Text>No events found.</Text>
       ) : (
-        <FlatList  // Render events and display 
+        <FlatList
           data={events}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <View style={styles.eventItem}>
-              <Text style={styles.eventTitle}>{item.name}</Text>
-              <Text style={styles.eventLocation}>Location: {item.location}</Text>
-              <Text style={styles.eventTime}>
-                {new Date(item.startsOn) > new Date() ? 'Starts' : 'Started'}: {new Date(item.startsOn).toLocaleString()}
-              </Text>
-              <Text style={styles.eventDescription} numberOfLines={3}>
-                {stripHtmlTags(item.description)}
-              </Text>
-            </View>
+            <TouchableOpacity onPress={() => openEventDetails(item)}> 
+              <View style={styles.eventItem}>
+                <Text style={styles.eventTitle}>{item.name}</Text>
+                <Text style={styles.eventLocation}>Location: {item.location}</Text>
+                <Text style={styles.eventTime}>
+                  {new Date(item.startsOn) > new Date() ? 'Starts' : 'Started'}: {new Date(item.startsOn).toLocaleString()}
+                </Text>
+                <Text style={styles.eventDescription} numberOfLines={3}>
+                  {stripHtmlTags(item.description)}
+                </Text>
+              </View>
+            </TouchableOpacity>
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> // Pull to refresh
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         />
       )}
+
+      {/* Modal for event details */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeEventDetails}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              {selectedEvent && (
+                <View>
+                  <Text style={styles.modalTitle}>{selectedEvent.name}</Text>
+                  <Text style={styles.modalLocation}>Location: {selectedEvent.location}</Text>
+                  <Text style={styles.modalTime}>
+                    Starts: {new Date(selectedEvent.startsOn).toLocaleString()}
+                  </Text>
+                  <Text style={styles.modalTime}>
+                    Ends: {new Date(selectedEvent.endsOn).toLocaleString()}
+                  </Text>
+                  <Text style={styles.modalDescription}>
+                    {stripHtmlTags(selectedEvent.description)}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={closeEventDetails}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -170,6 +228,7 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#0C5449',
   },
   eventLocation: {
     color: 'grey',
@@ -189,6 +248,68 @@ const styles = StyleSheet.create({
   link: {
     color: '#0C5449',
     fontSize: 16,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  modalContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    paddingBottom: 20, 
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#0C5449',
+  },
+  modalLocation: {
+    fontSize: 16,
+    marginBottom: 5,
+    fontWeight: 'bold',
+  },
+  modalTime: {
+    fontSize: 16,
+    marginBottom: 5,
+    fontWeight: 'bold',
+  },
+  modalDescription: {
+    fontSize: 16,
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  closeButton: {
+    backgroundColor: '#0C5449',
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2,
+    marginTop: 10, 
+  },
+  closeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 

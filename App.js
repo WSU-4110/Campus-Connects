@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './screens/LoginScreen';
 import WelcomeScreen from './screens/WelcomeScreen';
 import SignUpScreen from './screens/SignUpScreen'; 
+import OnboardScreen from './screens/OnboardScreen'; 
 import MainContainer from './navigation/MainContainer'; 
 import EventsScreen from './navigation/nav-screens/EventsScreen';
 import PersonalEventsScreen from './navigation/nav-screens/PersonalEventsScreen';
@@ -36,6 +37,11 @@ export default function App() {
           options={{ headerShown: false }}
           name="SignUp"
           component={SignUpScreen}
+        />
+          <Stack.Screen
+          options={{ headerShown: false }} 
+          name="Onboard" 
+          component={OnboardScreen}
         />
         <Stack.Screen name="Events" component={EventsScreen} />
         <Stack.Screen name="PersonalEvents" component={PersonalEventsScreen} />

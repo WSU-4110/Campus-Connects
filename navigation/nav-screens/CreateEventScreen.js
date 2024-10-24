@@ -11,6 +11,8 @@ const CreateEventScreen = () => {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
+  const [startTime, setStartTime] = useState(''); // Start time state
+  const [endTime, setEndTime] = useState(''); // End time state
   const [isPublic, setIsPublic] = useState(false); // For toggling public/private events
 
   // Function to handle event creation
@@ -26,7 +28,9 @@ const CreateEventScreen = () => {
       const eventData = {
         title,
         description,
-        date,
+        date, // Keep date as MM/DD/YYYY
+        startTime,
+        endTime,
         location,
         isPublic,
         createdBy: user.uid,
@@ -44,6 +48,8 @@ const CreateEventScreen = () => {
       setDescription('');
       setLocation('');
       setDate('');
+      setStartTime(''); // Clear start time
+      setEndTime('');   // Clear end time
       setIsPublic(false);
     } catch (error) {
       console.error("Error adding event: ", error);
@@ -73,18 +79,30 @@ const CreateEventScreen = () => {
       />
       <TextInput
         style={styles.input}
-        placeholder="Date (YYYY-MM-DD)"
+        placeholder="Date (MM/DD/YYYY)"
         value={date}
         onChangeText={setDate}
       />
+      <TextInput
+        style={styles.input}
+        placeholder="Start Time (HH:MM AM/PM)"
+        value={startTime}
+        onChangeText={setStartTime}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="End Time (HH:MM AM/PM)"
+        value={endTime}
+        onChangeText={setEndTime}
+      />
       <View style={styles.switchContainer}>
-        <Text>Make this event public?</Text>
+        <Text style={styles.link}>Make this event public?</Text>
         <Switch
           value={isPublic}
           onValueChange={setIsPublic} // Toggle public/private
         />
       </View>
-      <Button title="Create Event" onPress={handleCreateEvent} />
+      <Button color="#0C5449" title="Create Event" onPress={handleCreateEvent} />
     </View>
   );
 };
@@ -103,6 +121,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderColor: '#ccc',
     borderWidth: 1,
+  },
+  link: {
+    color: '#0C5449',
+    fontSize: 16,
   },
   switchContainer: {
     flexDirection: 'row',

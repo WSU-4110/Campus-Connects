@@ -30,8 +30,8 @@ const SignUpScreen = () => {
       alert("Verification email sent! Please check your inbox.");
 
       // will sign out the user after sending verification email
-      await auth.signOut();
-      navigation.navigate("Login"); 
+      navigation.navigate("Onboard");
+ 
     } catch (error) {
       alert(error.message);
     }

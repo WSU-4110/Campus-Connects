@@ -1,50 +1,76 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import { db, auth } from '../../firebase'; // Import Firestore and Auth
-import { collection, getDocs } from 'firebase/firestore'; // Firestore functions
+import { db, auth } from '../../firebase'; 
+import { collection, getDocs } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
+
+// Factory Pattern 
+class PublicEvent {
+  constructor(eventData) {
+    this.id = eventData.id;
+    this.title = eventData.title;
+    this.location = eventData.location;
+    this.date = eventData.date;
+    this.startTime = eventData.startTime;
+    this.endTime = eventData.endTime;
+    this.description = eventData.description;
+    this.isPublic = true;
+  }
+}
+
+class PrivateEvent {
+  constructor(eventData) {
+    this.id = eventData.id;
+    this.title = eventData.title;
+    this.location = eventData.location;
+    this.date = eventData.date;
+    this.startTime = eventData.startTime;
+    this.endTime = eventData.endTime;
+    this.description = eventData.description;
+    this.isPublic = false;
+    this.createdBy = eventData.createdBy;
+  }
+}
+
+class EventFactory {
+  static createEvent(eventData, userId) {
+    return eventData.isPublic || eventData.createdBy === userId
+      ? new PublicEvent(eventData)
+      : new PrivateEvent(eventData);
+  }
+}
 
 const PersonalEventsScreen = () => {
   const navigation = useNavigation();
-  const [eventsData, setEventsData] = useState([]); // To store events from Firestore
-  const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
-  const [selectedEvent, setSelectedEvent] = useState(null); // Selected event for modal
+  const [eventsData, setEventsData] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // Function to fetch events from Firestore
+  // Fetch events and use EventFactory to create event objects
   const fetchEvents = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'events'));
-      const eventsArray = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      // Get the current user's ID
       const userId = auth.currentUser.uid;
 
-      // Filter events to show only public events and private events created by the current user
-      const filteredEvents = eventsArray.filter(event => 
-        event.isPublic || event.createdBy === userId
+      const eventsArray = querySnapshot.docs.map(doc =>
+        EventFactory.createEvent({ id: doc.id, ...doc.data() }, userId)
       );
 
-      setEventsData(filteredEvents);
+      setEventsData(eventsArray);
     } catch (error) {
       console.error("Error fetching events: ", error);
     }
   };
 
-  // Call fetchEvents when the component mounts
   useEffect(() => {
     fetchEvents();
   }, []);
 
-  // Function to open the modal with selected event details
   const openEventDetails = (event) => {
     setSelectedEvent(event);
     setModalVisible(true);
   };
 
-  // Function to close the modal
   const closeEventDetails = () => {
     setModalVisible(false);
     setSelectedEvent(null);
@@ -73,7 +99,6 @@ const PersonalEventsScreen = () => {
         )}
       />
 
-      {/* Modal for event details */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -87,7 +112,7 @@ const PersonalEventsScreen = () => {
                 <View>
                   <Text style={styles.modalTitle}>{selectedEvent.title}</Text>
                   <Text style={styles.modalLocation}>Location: {selectedEvent.location}</Text>
-                  <Text style={styles.modalDate}>Starts: {selectedEvent.date}, {selectedEvent.time}</Text>
+                  <Text style={styles.modalDate}>Starts: {selectedEvent.date}, {selectedEvent.startTime}</Text>
                   <Text style={styles.modalDescription}>{selectedEvent.description}</Text>
                   <Text>{selectedEvent.isPublic ? "Public" : "Private"}</Text>
                 </View>
@@ -107,11 +132,10 @@ const PersonalEventsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#fff', // background color for events page
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -129,7 +153,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   eventCard: {
-    backgroundColor: '#fff', // color of the events cards
+    backgroundColor: '#fff',
     padding: 15,
     marginBottom: 10,
     elevation: 3,
@@ -204,10 +228,7 @@ const styles = StyleSheet.create({
     padding: 35,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,

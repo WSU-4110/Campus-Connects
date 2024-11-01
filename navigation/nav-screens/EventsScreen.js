@@ -46,7 +46,6 @@ const stripHtmlTags = (html) => {
     .trim();                   // Remove leading and trailing spaces
 };
 
-// Event Display Factory
 class EventDisplayFactory {
   static createEventListItem(event, onPress) {
     return {

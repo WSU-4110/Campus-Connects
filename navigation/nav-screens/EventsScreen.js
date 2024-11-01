@@ -46,57 +46,91 @@ const stripHtmlTags = (html) => {
     .trim();                   // Remove leading and trailing spaces
 };
 
-class EventDisplayFactory {
-  static createEventListItem(event, onPress) {
-    return {
-      render: () => (
-        <TouchableOpacity onPress={() => onPress(event)}>
-          <View style={styles.eventItem}>
-            <Text style={styles.eventTitle}>{event.name}</Text>
-            <Text style={styles.eventLocation}>Location: {event.location}</Text>
-            <Text style={styles.eventTime}>
-              {new Date(event.startsOn) > new Date() ? 'Starts' : 'Started'}: 
-              {new Date(event.startsOn).toLocaleString()}
-            </Text>
-            <Text style={styles.eventDescription} numberOfLines={3}>
-              {stripHtmlTags(event.description)}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      )
-    };
+class EventDisplay {
+  render() {
+    throw new Error('render() must be implemented');
+  }
+}
+
+class EventListDisplay extends EventDisplay {
+  constructor(event, onPress) {
+    super();
+    this.event = event;
+    this.onPress = onPress;
   }
 
-  static createEventModal(event, onClose) {
-    return {
-      render: () => (
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <ScrollView contentContainerStyle={styles.modalContent}>
-              <View>
-                <Text style={styles.modalTitle}>{event.name}</Text>
-                <Text style={styles.modalLocation}>Location: {event.location}</Text>
-                <Text style={styles.modalTime}>
-                  Starts: {new Date(event.startsOn).toLocaleString()}
-                </Text>
-                <Text style={styles.modalTime}>
-                  Ends: {new Date(event.endsOn).toLocaleString()}
-                </Text>
-                <Text style={styles.modalDescription}>
-                  {stripHtmlTags(event.description)}
-                </Text>
-              </View>
-            </ScrollView>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={onClose}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
+  render() {
+    return (
+      <TouchableOpacity onPress={() => this.onPress(this.event)}>
+        <View style={styles.eventItem}>
+          <Text style={styles.eventTitle}>{this.event.name}</Text>
+          <Text style={styles.eventLocation}>Location: {this.event.location}</Text>
+          <Text style={styles.eventTime}>
+            {new Date(this.event.startsOn) > new Date() ? 'Starts' : 'Started'}: 
+            {new Date(this.event.startsOn).toLocaleString()}
+          </Text>
+          <Text style={styles.eventDescription} numberOfLines={3}>
+            {stripHtmlTags(this.event.description)}
+          </Text>
         </View>
-      )
-    };
+      </TouchableOpacity>
+    );
+  }
+}
+
+class EventModalDisplay extends EventDisplay {
+  constructor(event, onClose) {
+    super();
+    this.event = event;
+    this.onClose = onClose;
+  }
+
+  render() {
+    return (
+      <View style={styles.centeredView}>
+        <View style={styles.modalView}>
+          <ScrollView contentContainerStyle={styles.modalContent}>
+            <View>
+              <Text style={styles.modalTitle}>{this.event.name}</Text>
+              <Text style={styles.modalLocation}>Location: {this.event.location}</Text>
+              <Text style={styles.modalTime}>
+                Starts: {new Date(this.event.startsOn).toLocaleString()}
+              </Text>
+              <Text style={styles.modalTime}>
+                Ends: {new Date(this.event.endsOn).toLocaleString()}
+              </Text>
+              <Text style={styles.modalDescription}>
+                {stripHtmlTags(this.event.description)}
+              </Text>
+            </View>
+          </ScrollView>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={this.onClose}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+}
+
+class EventDisplayFactory {
+  createDisplay() {
+    throw new Error('createDisplay() must be implemented');
+  }
+}
+
+class EventListFactory extends EventDisplayFactory {
+  createDisplay(event, onPress) {
+    return new EventListDisplay(event, onPress);
+  }
+}
+
+class EventModalFactory extends EventDisplayFactory {
+  createDisplay(event, onClose) {
+    return new EventModalDisplay(event, onClose);
   }
 }
 
@@ -111,6 +145,9 @@ const EventsScreen = () => {
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const listFactory = new EventListFactory();
+  const modalFactory = new EventModalFactory();
 
   const fetchEventsData = useCallback(async () => { 
     try {
@@ -172,13 +209,13 @@ const EventsScreen = () => {
   };
 
   const renderEventItem = ({ item }) => {
-    const eventListItem = EventDisplayFactory.createEventListItem(item, openEventDetails);
-    return eventListItem.render();
+    const eventDisplay = listFactory.createDisplay(item, openEventDetails);
+    return eventDisplay.render();
   };
 
   const renderEventModal = () => {
     if (!selectedEvent) return null;
-    const eventModal = EventDisplayFactory.createEventModal(selectedEvent, closeEventDetails);
+    const eventDisplay = modalFactory.createDisplay(selectedEvent, closeEventDetails);
     return (
       <Modal
         animationType="slide"
@@ -186,7 +223,7 @@ const EventsScreen = () => {
         visible={modalVisible}
         onRequestClose={closeEventDetails}
       >
-        {eventModal.render()}
+        {eventDisplay.render()}
       </Modal>
     );
   };

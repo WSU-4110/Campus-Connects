@@ -1,14 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
 import { db, auth } from '../../firebase';
-import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, updateDoc, arrayUnion, arrayRemove, setDoc, getDoc } from 'firebase/firestore';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { FontAwesome } from '@expo/vector-icons';
 
 const PersonalEventsScreen = () => {
   const navigation = useNavigation();
   const [eventsData, setEventsData] = useState([]);
+  const [userBookmarks, setUserBookmarks] = useState([]); // To track user bookmarks
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // Fetch user bookmarks
+  const fetchUserBookmarks = async () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      setUserBookmarks(userSnap.data().bookmarks || []);
+    } else {
+      setUserBookmarks([]);
+    }
+  };
 
   // Fetch events from Firestore
   const fetchEvents = async () => {
@@ -17,6 +33,7 @@ const PersonalEventsScreen = () => {
       const eventsArray = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
+        isBookmarked: userBookmarks.includes(doc.id), // Set initial bookmark status
       }));
       const userId = auth.currentUser?.uid;
 
@@ -30,11 +47,34 @@ const PersonalEventsScreen = () => {
     }
   };
 
-  // Fetch events whenever the screen is focused
+  const toggleBookmark = async (eventId, isBookmarked) => {
+    try {
+      const userId = auth.currentUser?.uid;
+      const userRef = doc(db, 'users', userId);
+
+      // Use setDoc to ensure the document exists
+      await setDoc(userRef, {}, { merge: true });
+
+      if (isBookmarked) {
+        await updateDoc(userRef, { bookmarks: arrayRemove(eventId) });
+        setUserBookmarks(prev => prev.filter(id => id !== eventId));
+      } else {
+        await updateDoc(userRef, { bookmarks: arrayUnion(eventId) });
+        setUserBookmarks(prev => [...prev, eventId]);
+      }
+
+      fetchEvents(); // Refresh the event list
+    } catch (error) {
+      console.error("Error updating bookmark: ", error);
+      Alert.alert("Failed to update bookmark");
+    }
+  };
+
+  // Fetch events and bookmarks whenever the screen is focused
   useFocusEffect(
     React.useCallback(() => {
-      fetchEvents();
-    }, [])
+      fetchUserBookmarks().then(fetchEvents);
+    }, [userBookmarks])
   );
 
   // Handle opening event details in a modal
@@ -85,12 +125,20 @@ const PersonalEventsScreen = () => {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.eventCard} onPress={() => openEventDetails(item)}>
+            <TouchableOpacity onPress={() => toggleBookmark(item.id, item.isBookmarked)}>
+              <FontAwesome 
+                name={item.isBookmarked ? "bookmark" : "bookmark-o"} 
+                size={24} 
+                color={item.isBookmarked ? "gold" : "grey"} 
+              />
+            </TouchableOpacity>
             <Text style={styles.eventTitle}>{item.title}</Text>
             <Text style={styles.eventLocation}>Location: {item.location || 'N/A'}</Text>
             <Text style={styles.eventDate}>Date: {item.date || 'N/A'}</Text>
             <Text style={styles.eventTime}>Starts: {item.startTime || 'N/A'} - Ends: {item.endTime || 'N/A'}</Text>
             <Text style={styles.eventDescription} numberOfLines={3}>{item.description}</Text>
             <Text style={styles.eventsStatus}>{item.isPublic ? "Public" : "Private"}</Text>
+            
           </TouchableOpacity>
         )}
       />

@@ -246,13 +246,15 @@ const ProfileScreen = ({ bookmarks }) => {
                     <Text style={styles.eventDate}>Date: {item.date || 'N/A'}</Text>
 
                     {/* Bookmark Icon */}
+                    <View style={styles.bookmarkContainer}>
                     <TouchableOpacity onPress={() => toggleBookmark(item.id, isBookmarked)}>
                       <Icon
                         name={isBookmarked ? 'bookmark' : 'bookmark-o'}
                         size={24}
-                        color={isBookmarked ? 'gold' : 'grey'}
+                        color={isBookmarked ? '#0C5449' : 'grey'}
                       />
                     </TouchableOpacity>
+                    </View>
                   </TouchableOpacity>
                 );
               }}
@@ -349,6 +351,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  bookmarkContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+  },
   infoContainer: {
     width: '100%',
     backgroundColor: '#F5F5F5',
@@ -406,7 +413,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    width: '80%',
+    width: '90%',
+     maxHeight: '80%', // Ensure modal doesn't take up entire screen height
     backgroundColor: '#fff',
     borderRadius: 10,
     padding: 20,

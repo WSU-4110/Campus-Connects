@@ -8,6 +8,7 @@ import WelcomeScreen from './screens/WelcomeScreen';
 import SignUpScreen from './screens/SignUpScreen'; 
 import MainContainer from './navigation/MainContainer'; 
 import EventsScreen from './navigation/nav-screens/EventsScreen';
+import OnboardScreen from './screens/OnboardScreen'; 
 import PersonalEventsScreen from './navigation/nav-screens/PersonalEventsScreen';
 import CreateEventScreen from './navigation/nav-screens/CreateEventScreen';
 
@@ -39,39 +40,39 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-        {user ? (
-          <Stack.Screen 
-            name="Home" 
-            component={MainContainer} 
-            options={{ headerShown: false }} 
-          />
-        ) : (
-          <>
-            <Stack.Screen
-              options={{ headerShown: false }}
-              name="Welcome"
-              component={WelcomeScreen}
-            />
-            <Stack.Screen
-              options={{ headerShown: false }}
-              name="Login"
-              component={LoginScreen}
-            />
-            <Stack.Screen
-              options={{ headerShown: false }}
-              name="SignUp"
-              component={SignUpScreen}
-            />
-          </>
-        )}
-        <Stack.Screen name="Events" component={EventsScreen} />
-        <Stack.Screen name="PersonalEvents" component={PersonalEventsScreen} />
-        <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
-      </Stack.Navigator>
-      <StatusBar style="auto" />
-    </NavigationContainer>
-  );
+    <Stack.Navigator>
+      <Stack.Screen
+        options={{ headerShown: false }}
+        name="Welcome"
+        component={WelcomeScreen}
+      />
+      <Stack.Screen
+        options={{ headerShown: false }}
+        name="Login"
+        component={LoginScreen}
+      />
+      <Stack.Screen 
+        name="Home" 
+        component={MainContainer} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen
+        options={{ headerShown: false }}
+        name="SignUp"
+        component={SignUpScreen}
+      />
+       <Stack.Screen
+        options={{ headerShown: false }} 
+        name="Onboard" 
+        component={OnboardScreen}
+      />
+      <Stack.Screen name="Events" component={EventsScreen} />
+      <Stack.Screen name="PersonalEvents" component={PersonalEventsScreen} />
+      <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
+    </Stack.Navigator>
+    <StatusBar style="auto" />
+  </NavigationContainer>
+);
 }
 
 const styles = StyleSheet.create({

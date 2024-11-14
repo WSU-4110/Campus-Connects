@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, ScrollView, Modal, Button } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, ScrollView, Modal, Button, FlatList, Alert } from 'react-native';
 import { auth, db } from '../../firebase';
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/FontAwesome'; 
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
-
-  const initialUserData = {
+  const [userData, setUserData] = useState({
     firstName: '',
     lastName: '',
     email: auth.currentUser?.email || '',
@@ -15,11 +15,12 @@ const ProfileScreen = () => {
     year: '',
     major: '',
     clubs: '',
-  };
-
-  const [userData, setUserData] = useState(initialUserData);
-  const [editableData, setEditableData] = useState(initialUserData);
-  const [isModalVisible, setModalVisible] = useState(false);
+  });
+  const [editableData, setEditableData] = useState(userData);
+  const [isModalVisible, setModalVisible] = useState(false); 
+  const [bookmarksModalVisible, setBookmarksModalVisible] = useState(false);
+  const [bookmarkedEvents, setBookmarkedEvents] = useState([]); 
+  const [selectedEvent, setSelectedEvent] = useState(null); 
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -37,6 +38,31 @@ const ProfileScreen = () => {
     };
     fetchUserData();
   }, []);
+
+  const fetchBookmarkedEvents = async () => {
+    try {
+      const userId = auth.currentUser?.uid;
+      if (!userId) return;
+
+      const userRef = doc(db, 'users', userId);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const bookmarks = userSnap.data().bookmarks || [];
+        const eventsRef = collection(db, 'events');
+        const eventsSnap = await getDocs(eventsRef);
+        
+        const bookmarkedEventDetails = eventsSnap.docs
+          .filter(doc => bookmarks.includes(doc.id))
+          .map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        setBookmarkedEvents(bookmarkedEventDetails);
+      }
+    } catch (error) {
+      console.error("Error fetching bookmarked events: ", error);
+      Alert.alert("Failed to load bookmarks");
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -59,6 +85,34 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleEventClick = (event) => {
+    setSelectedEvent(event);
+  };
+
+  const toggleBookmark = async (eventId, isBookmarked) => {
+    try {
+      const userId = auth.currentUser?.uid;
+      const userRef = doc(db, 'users', userId);
+
+      await setDoc(userRef, {}, { merge: true });
+
+      if (isBookmarked) {
+        await updateDoc(userRef, { bookmarks: arrayRemove(eventId) });
+        setBookmarkedEvents(prev => prev.filter(event => event.id !== eventId));
+      } else {
+        await updateDoc(userRef, { bookmarks: arrayUnion(eventId) });
+        const eventRef = doc(db, 'events', eventId);
+        const eventSnap = await getDoc(eventRef);
+        setBookmarkedEvents(prev => [...prev, { id: eventId, ...eventSnap.data() }]);
+      }
+
+      fetchBookmarkedEvents(); 
+    } catch (error) {
+      console.error("Error updating bookmark: ", error);
+      Alert.alert("Failed to update bookmark");
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerContainer}>
@@ -71,18 +125,26 @@ const ProfileScreen = () => {
         source={{ uri: 'https://via.placeholder.com/100' }} // Replace with user picture URL
         style={styles.profileImage}
       />
-      
+
       <Text style={styles.header}>
         {userData.firstName && userData.lastName 
           ? `${userData.firstName} ${userData.lastName}` 
           : 'Profile Information'}
       </Text>
 
+      {/* View Bookmarks Button */}
+      <TouchableOpacity 
+        style={styles.bookmarksButton}
+        onPress={() => { fetchBookmarkedEvents(); setBookmarksModalVisible(true); }}>
+        <Text style={styles.bookmarksButtonText}>Bookmarks</Text>
+      </TouchableOpacity>
+
+      {/* Profile Information */}
       <View style={styles.infoContainer}>
-        {Object.keys(initialUserData).map((key, index) => (
+        {Object.keys(userData).map((key, index) => (
           <View key={key}>
             <Text style={styles.value}>{`${key.charAt(0).toUpperCase() + key.slice(1)}: ${userData[key] || 'N/A'}`}</Text>
-            {index < Object.keys(initialUserData).length - 1 && <View style={styles.separator} />}
+            {index < Object.keys(userData).length - 1 && <View style={styles.separator} />}
           </View>
         ))}
       </View>
@@ -91,6 +153,7 @@ const ProfileScreen = () => {
         <Text style={styles.editButtonText}>Edit Profile</Text>
       </TouchableOpacity>
 
+      {/* Profile Edit Modal */}
       <Modal
         visible={isModalVisible}
         animationType="slide"
@@ -100,7 +163,7 @@ const ProfileScreen = () => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalHeader}>Edit Profile</Text>
-            {Object.keys(initialUserData).map((key) => (
+            {Object.keys(userData).map((key) => (
               <View key={key} style={styles.modalInputRow}>
                 <Text style={styles.label}>{key.charAt(0).toUpperCase() + key.slice(1)}:</Text>
                 <TextInput
@@ -115,11 +178,72 @@ const ProfileScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Bookmarks Modal */}
+      <Modal
+        visible={bookmarksModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setBookmarksModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalHeader}>Bookmarked Events</Text>
+
+            <FlatList
+              data={bookmarkedEvents}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => {
+                const isBookmarked = bookmarkedEvents.some(event => event.id === item.id);
+
+                return (
+                  <TouchableOpacity 
+                    style={styles.eventCard}
+                    onPress={() => handleEventClick(item)} // Open event details on click
+                  >
+                    <Text style={styles.eventTitle}>{item.title}</Text>
+                    <Text style={styles.eventLocation}>Location: {item.location || 'N/A'}</Text>
+                    <Text style={styles.eventDate}>Date: {item.date || 'N/A'}</Text>
+
+                    {/* Bookmark Icon */}
+                    <TouchableOpacity onPress={() => toggleBookmark(item.id, isBookmarked)}>
+                      <Icon
+                        name={isBookmarked ? 'bookmark' : 'bookmark-o'}
+                        size={24}
+                        color={isBookmarked ? 'gold' : 'grey'}
+                      />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+            <Button title="Close" onPress={() => setBookmarksModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Event Details Modal */}
+      {selectedEvent && (
+        <Modal
+          visible={selectedEvent !== null}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setSelectedEvent(null)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalHeader}>{selectedEvent.title}</Text>
+              <Text style={styles.eventDescription}>{selectedEvent.description}</Text>
+              <Text style={styles.eventLocation}>Location: {selectedEvent.location}</Text>
+              <Text style={styles.eventDate}>Date: {selectedEvent.date}</Text>
+              <Button title="Close" onPress={() => setSelectedEvent(null)} />
+            </View>
+          </View>
+        </Modal>
+      )}
     </ScrollView>
   );
 };
-
-export default ProfileScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -185,6 +309,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  bookmarksButton: {
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 20,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    backgroundColor: '#F5F5F5',
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bookmarksButtonText: {
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  bookmarkIcon: {
+    marginLeft: 10,
+    fontSize: 20,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -214,4 +358,34 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 5,
   },
+  eventDescription: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#555',
+  },
+  eventLocation: {
+    fontSize: 14,
+    color: '#777',
+  },
+  eventDate: {
+    fontSize: 14,
+    color: '#777',
+  },
+  eventCard: {
+    backgroundColor: '#fff',
+    padding: 15,
+    marginVertical: 10,
+    borderRadius: 5,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  eventTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0C5449',
+  },
 });
+
+export default ProfileScreen;
+

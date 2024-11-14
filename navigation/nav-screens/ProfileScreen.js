@@ -5,7 +5,7 @@ import { doc, getDoc, setDoc, collection, getDocs, updateDoc, arrayUnion, arrayR
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome'; 
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ bookmarks }) => {
   const navigation = useNavigation();
   const [userData, setUserData] = useState({
     firstName: '',
@@ -21,6 +21,8 @@ const ProfileScreen = () => {
   const [bookmarksModalVisible, setBookmarksModalVisible] = useState(false);
   const [bookmarkedEvents, setBookmarkedEvents] = useState([]); 
   const [selectedEvent, setSelectedEvent] = useState(null); 
+  const [wsuBookmarksModalVisible, setWsuBookmarksModalVisible] = useState(false);
+  const [wsuBookmarkedEvents, setWsuBookmarkedEvents] = useState([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -38,6 +40,12 @@ const ProfileScreen = () => {
     };
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    if (bookmarks) {
+      setBookmarkedEvents(bookmarks);
+    }
+  }, [bookmarks]);
 
   const fetchBookmarkedEvents = async () => {
     try {
@@ -113,6 +121,31 @@ const ProfileScreen = () => {
     }
   };
 
+  const fetchWsuBookmarkedEvents = async () => {
+    try {
+      const userId = auth.currentUser?.uid;
+      if (!userId) return;
+
+      const userRef = doc(db, 'users', userId);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const bookmarks = userSnap.data().bookmarks || [];
+        const wsuEventsRef = collection(db, 'wsuevents');
+        const wsuEventsSnap = await getDocs(wsuEventsRef);
+        
+        const wsuBookmarkedEventDetails = wsuEventsSnap.docs
+          .filter(doc => bookmarks.includes(doc.id))
+          .map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        setWsuBookmarkedEvents(wsuBookmarkedEventDetails);
+      }
+    } catch (error) {
+      console.error("Error fetching WSU bookmarked events: ", error);
+      Alert.alert("Failed to load WSU bookmarks");
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerContainer}>
@@ -136,7 +169,14 @@ const ProfileScreen = () => {
       <TouchableOpacity 
         style={styles.bookmarksButton}
         onPress={() => { fetchBookmarkedEvents(); setBookmarksModalVisible(true); }}>
-        <Text style={styles.bookmarksButtonText}>Bookmarks</Text>
+        <Text style={styles.bookmarksButtonText}>Personal Event Bookmarks</Text>
+      </TouchableOpacity>
+
+      {/* WSU Event Bookmarks Button */}
+      <TouchableOpacity 
+        style={styles.bookmarksButton}
+        onPress={() => { fetchWsuBookmarkedEvents(); setWsuBookmarksModalVisible(true); }}>
+        <Text style={styles.bookmarksButtonText}>WSU Event Bookmarks</Text>
       </TouchableOpacity>
 
       {/* Profile Information */}
@@ -188,7 +228,7 @@ const ProfileScreen = () => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>Bookmarked Events</Text>
+            <Text style={styles.modalHeader}>Personal Bookmarked Events</Text>
 
             <FlatList
               data={bookmarkedEvents}
@@ -199,7 +239,7 @@ const ProfileScreen = () => {
                 return (
                   <TouchableOpacity 
                     style={styles.eventCard}
-                    onPress={() => handleEventClick(item)} // Open event details on click
+                    onPress={() => handleEventClick(item)}
                   >
                     <Text style={styles.eventTitle}>{item.title}</Text>
                     <Text style={styles.eventLocation}>Location: {item.location || 'N/A'}</Text>
@@ -218,6 +258,36 @@ const ProfileScreen = () => {
               }}
             />
             <Button title="Close" onPress={() => setBookmarksModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* WSU Bookmarks Modal */}
+      <Modal
+        visible={wsuBookmarksModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setWsuBookmarksModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalHeader}>WSU Bookmarked Events</Text>
+
+            <FlatList
+              data={wsuBookmarkedEvents}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={styles.eventCard}
+                  onPress={() => handleEventClick(item)} 
+                >
+                  <Text style={styles.eventTitle}>{item.name}</Text>
+                  <Text style={styles.eventLocation}>Location: {item.location || 'N/A'}</Text>
+                  <Text style={styles.eventDate}>Date: {item.startOn || 'N/A'}</Text>
+                </TouchableOpacity>
+              )}
+            />
+            <Button title="Close" onPress={() => setWsuBookmarksModalVisible(false)} />
           </View>
         </View>
       </Modal>

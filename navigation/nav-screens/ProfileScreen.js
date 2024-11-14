@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, ScrollView,
 import { auth, db } from '../../firebase';
 import { doc, getDoc, setDoc, collection, getDocs, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/FontAwesome'; // Importing FontAwesome icons
+import Icon from 'react-native-vector-icons/FontAwesome'; 
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -17,10 +17,10 @@ const ProfileScreen = () => {
     clubs: '',
   });
   const [editableData, setEditableData] = useState(userData);
-  const [isModalVisible, setModalVisible] = useState(false); // Profile edit modal visibility
-  const [bookmarksModalVisible, setBookmarksModalVisible] = useState(false); // Bookmarks modal visibility
-  const [bookmarkedEvents, setBookmarkedEvents] = useState([]); // Bookmarked events list
-  const [selectedEvent, setSelectedEvent] = useState(null); // Selected event details for modal
+  const [isModalVisible, setModalVisible] = useState(false); 
+  const [bookmarksModalVisible, setBookmarksModalVisible] = useState(false);
+  const [bookmarkedEvents, setBookmarkedEvents] = useState([]); 
+  const [selectedEvent, setSelectedEvent] = useState(null); 
 
   useEffect(() => {
     const fetchUserData = async () => {

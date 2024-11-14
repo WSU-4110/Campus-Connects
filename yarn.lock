@@ -3655,10 +3655,10 @@ expo-linking@^7.0.2:
     expo-constants "~17.0.0"
     invariant "^2.2.4"
 
-expo-location@~18.0.1:
-  version "18.0.1"
-  resolved "https://registry.yarnpkg.com/expo-location/-/expo-location-18.0.1.tgz#88d7e0e3793335b23a133f6e1f2ca209b3946ba3"
-  integrity sha512-LRpMkNXynLUbZvbRCfxHCdX6zxrmJx2afRDIXoq8kAYeMXRH7XpjXcF0Aj/+E8tSgu1Wn17zIdRYj4muJi+ldA==
+expo-location@~17.0.1:
+  version "17.0.1"
+  resolved "https://registry.yarnpkg.com/expo-location/-/expo-location-17.0.1.tgz#3bdbf91066f1a40ec3468dc1807f3e106473f74c"
+  integrity sha512-m+OzotzlAXO3ZZ1uqW5GC25nXW868zN+ROyBA1V4VF6jGay1ZEs4URPglCVUDzZby2F5wt24cMzqDKw2IX6nRw==
 
 expo-modules-autolinking@2.0.2:
   version "2.0.2"

@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl, AppState, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl, AppState, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { FontAwesome } from '@expo/vector-icons';
+import { db, auth } from '../../firebase'; 
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, setDoc, collection } from 'firebase/firestore';
 
+// Function to fetch events from the API
 const fetchEvents = async () => {
   const url = 'https://getinvolved.wayne.edu/api/discovery/event/search';
-
-  // Set headers for the API request
   const headers = {
     'Accept': 'application/json',
     'Accept-Language': 'en-US,en;q=0.9',
@@ -14,17 +16,11 @@ const fetchEvents = async () => {
     'Referer': 'https://getinvolved.wayne.edu/events',
   };
 
-  // Fetch events from the API
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: headers,
-    });
-
+    const response = await fetch(url, { method: 'GET', headers });
     if (!response.ok) {
       throw new Error(`Error fetching events: ${response.statusText}`);
     }
-
     const data = await response.json();
     return data; 
   } catch (error) {
@@ -47,9 +43,7 @@ const stripHtmlTags = (html) => {
 };
 
 const EventsScreen = () => {
-  const navigation = useNavigation()
-
-  // State variables
+  const navigation = useNavigation();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,11 +51,44 @@ const EventsScreen = () => {
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [userBookmarks, setUserBookmarks] = useState([]); 
 
+  // Fetch user bookmarks
+  const fetchUserBookmarks = async () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      setUserBookmarks(userSnap.data().bookmarks || []);
+    } else {
+      setUserBookmarks([]);
+    }
+  };
+
+  // Store events in Firestore
+  const storeEventsInFirestore = async (eventsData) => {
+    const eventsCollection = collection(db, 'wsuevents');
+
+    for (const event of eventsData) {
+      const eventRef = doc(eventsCollection, event.id); 
+      await setDoc(eventRef, {
+        name: event.name,
+        location: event.location, 
+        startsOn: event.startsOn, 
+        endsOn: event.endsOn, 
+        description: event.description, 
+      }, { merge: true }); 
+    }
+  };
+
+  // Fetch events data
   const fetchEventsData = useCallback(async () => { 
     try {
       const eventsData = await fetchEvents();
-      if (eventsData && Array.isArray(eventsData.value)) {  // Sort events by recent date
+      if (eventsData && Array.isArray(eventsData.value)) {
+        await storeEventsInFirestore(eventsData.value); 
         const now = new Date();
         const sortedEvents = eventsData.value
           .sort((a, b) => {
@@ -70,8 +97,15 @@ const EventsScreen = () => {
             return diffA - diffB;
           })
           .slice(0, 25);
-        setEvents(sortedEvents);
-        console.log('Fetched and sorted events:', sortedEvents.length);
+        
+        // Set bookmark status for each event
+        const eventsWithBookmarks = sortedEvents.map(event => ({
+          ...event,
+          isBookmarked: userBookmarks.includes(event.id), 
+        }));
+
+        setEvents(eventsWithBookmarks);
+        console.log('Fetched and sorted events:', eventsWithBookmarks.length);
       } else {
         console.log('No events found', eventsData);
         setEvents([]);
@@ -82,12 +116,36 @@ const EventsScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [userBookmarks]);
+
+  // Toggle bookmark status
+  const toggleBookmark = async (eventId, isBookmarked) => {
+    try {
+      const userId = auth.currentUser?.uid; 
+      if (!userId) {
+        console.error("User is not authenticated");
+        return; 
+      }
+
+      const userRef = doc(db, 'users', userId); 
+
+      await updateDoc(userRef, { bookmarks: isBookmarked ? arrayRemove(eventId) : arrayUnion(eventId) });
+      
+      setUserBookmarks(prev => isBookmarked ? prev.filter(id => id !== eventId) : [...prev, eventId]);
+      
+      fetchEventsData(); 
+    } catch (error) {
+      console.error("Error updating bookmark: ", error); 
+      Alert.alert("Failed to update bookmark");
+    }
+  };
 
   useEffect(() => {
-    fetchEventsData(); 
+    fetchUserBookmarks().then(fetchEventsData);
+  }, []);
 
-    // Listen for app state changes
+  // Listen for app state changes
+  useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') { // If app is inactive, fetch events
         console.log('App is active');
@@ -154,6 +212,13 @@ const EventsScreen = () => {
                 <Text style={styles.eventDescription} numberOfLines={3}>
                   {stripHtmlTags(item.description)}
                 </Text>
+                <TouchableOpacity onPress={() => toggleBookmark(item.id, item.isBookmarked)}>
+                  <FontAwesome 
+                    name={item.isBookmarked ? "bookmark" : "bookmark-o"} 
+                    size={24} 
+                    color={item.isBookmarked ? "gold" : "grey"} 
+                  />
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           )}
@@ -310,6 +375,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  bookmarkText: {
+    color: '#0C5449',
+    marginTop: 5,
+    fontWeight: 'bold',
   },
 });
 

@@ -212,13 +212,16 @@ const EventsScreen = () => {
                 <Text style={styles.eventDescription} numberOfLines={3}>
                   {stripHtmlTags(item.description)}
                 </Text>
+                <View style={styles.bookmarkContainer}>
                 <TouchableOpacity onPress={() => toggleBookmark(item.id, item.isBookmarked)}>
                   <FontAwesome 
                     name={item.isBookmarked ? "bookmark" : "bookmark-o"} 
                     size={24} 
-                    color={item.isBookmarked ? "gold" : "grey"} 
+                    color={item.isBookmarked ? "#0C5449" : "grey"} 
                   />
+                
                 </TouchableOpacity>
+                </View>
               </View>
             </TouchableOpacity>
           )}
@@ -303,6 +306,11 @@ const styles = StyleSheet.create({
   },
   eventDescription: {
     marginTop: 5,
+  },
+  bookmarkContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
   },
   header: {
     flexDirection: 'row',

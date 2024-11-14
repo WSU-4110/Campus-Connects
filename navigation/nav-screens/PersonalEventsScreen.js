@@ -110,6 +110,7 @@ const PersonalEventsScreen = () => {
       }
     }
   };
+  
 
   return (
     <View style={styles.container}>
@@ -124,14 +125,17 @@ const PersonalEventsScreen = () => {
         data={eventsData}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
+          
           <TouchableOpacity style={styles.eventCard} onPress={() => openEventDetails(item)}>
+             <View style={styles.bookmarkContainer}>
             <TouchableOpacity onPress={() => toggleBookmark(item.id, item.isBookmarked)}>
               <FontAwesome 
                 name={item.isBookmarked ? "bookmark" : "bookmark-o"} 
                 size={24} 
-                color={item.isBookmarked ? "gold" : "grey"} 
+                color={item.isBookmarked ? "#0C5449" : "grey"} 
               />
             </TouchableOpacity>
+            </View>
             <Text style={styles.eventTitle}>{item.title}</Text>
             <Text style={styles.eventLocation}>Location: {item.location || 'N/A'}</Text>
             <Text style={styles.eventDate}>Date: {item.date || 'N/A'}</Text>
@@ -232,6 +236,11 @@ const styles = StyleSheet.create({
   eventDescription: {
     fontSize: 14,
     color: '#333',
+  },
+  bookmarkContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
   },
   modalTitle: {
     fontSize: 22,

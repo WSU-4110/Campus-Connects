@@ -31,7 +31,7 @@ const FILTER_OPTIONS = [
   { id: 'restaurant', label: 'Restaurants', icon: 'restaurant' },
   { id: 'school', label: 'Academic', icon: 'school' },
   { id: 'parking', label: 'Parking', icon: 'car' },
-  { id: 'tourist_attraction', label: 'Attractions', icon: 'camera' },
+  // { id: 'tourist_attraction', label: 'Attractions', icon: 'camera' },
 ];
 
 const { width, height } = Dimensions.get('window');
@@ -405,8 +405,8 @@ const HomeScreen = () => {
       >
         <Polygon
           coordinates={WSU_BOUNDARIES}
-          fillColor="rgba(0, 0, 255, 0.1)"
-          strokeColor="rgba(0, 0, 255, 0.3)"
+          fillColor="rgba(0, 0, 255, 0)"
+          strokeColor="rgba(12, 84, 73, 0.3)"
           strokeWidth={2}
         />
         {places.map((place, index) => (
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   closeButton: {
-    backgroundColor: "#2196F3",
+    backgroundColor: "#0C5449",
     borderRadius: 20,
     padding: 10,
     elevation: 2
@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   activeFilterButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#0C5449',
   },
   filterText: {
     marginLeft: 5,
@@ -720,3 +720,4 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+

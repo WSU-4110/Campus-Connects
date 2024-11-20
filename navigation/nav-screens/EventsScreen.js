@@ -1,36 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl, AppState, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl, AppState, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { FontAwesome } from '@expo/vector-icons';
-import { db, auth } from '../../firebase'; 
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, setDoc, collection } from 'firebase/firestore';
+import { act } from 'react-test-renderer';
 
-// Function to fetch events from the API
-const fetchEvents = async () => {
-  const url = 'https://getinvolved.wayne.edu/api/discovery/event/search';
-  const headers = {
-    'Accept': 'application/json',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Cache-Control': 'no-cache',
-    'Content-Type': 'application/json',
-    'Referer': 'https://getinvolved.wayne.edu/events',
-  };
-
-  try {
-    const response = await fetch(url, { method: 'GET', headers });
-    if (!response.ok) {
-      throw new Error(`Error fetching events: ${response.statusText}`);
-    }
-    const data = await response.json();
-    return data; 
-  } catch (error) {
-    console.error('Error fetching events:', error);
-    return null; 
-  }
-};
-
-// Strip HTML from the event description, adjust spacing 
-const stripHtmlTags = (html) => {
+export const stripHtmlTags = (html) => {
   if (typeof html !== 'string') {
     return ''; // Return an empty string if input is not a string
   }
@@ -42,8 +15,146 @@ const stripHtmlTags = (html) => {
     .trim();                   // Remove leading and trailing spaces
 };
 
+const fetchEvents = async (setEvents) => {
+  const url = 'https://getinvolved.wayne.edu/api/discovery/event/search';
+
+  // Set headers for the API request
+  const headers = {
+    'Accept': 'application/json',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Cache-Control': 'no-cache',
+    'Content-Type': 'application/json',
+    'Referer': 'https://getinvolved.wayne.edu/events',
+  };
+
+  // Fetch events from the API
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`fetching events: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data && Array.isArray(data.value)) {  // Sort events by recent date
+      const now = new Date();
+      const sortedEvents = data.value
+        .sort((a, b) => {
+          const diffA = Math.abs(now - new Date(a.startsOn));    
+          const diffB = Math.abs(now - new Date(b.startsOn));
+          return diffA - diffB;
+        })
+        .slice(0, 25);
+      setEvents(sortedEvents);
+      
+      // Conditional logging to avoid issues during tests
+      if (process.env.NODE_ENV !== 'test') {
+        console.log('Fetched and sorted events:', sortedEvents.length);
+      }
+    } else {
+      console.log('No events found', data);
+      setEvents([]);
+    }
+  } catch (error) {
+    console.error('Error fetching events:', error);
+  }
+};
+
+class EventDisplay {
+  render() {
+    throw new Error('render() must be implemented');
+  }
+}
+
+class EventListDisplay extends EventDisplay {
+  constructor(event, onPress) {
+    super();
+    this.event = event;
+    this.onPress = onPress;
+  }
+
+  render() {
+    return (
+      <TouchableOpacity onPress={() => this.onPress(this.event)}>
+        <View style={styles.eventItem}>
+          <Text style={styles.eventTitle}>{this.event.name}</Text>
+          <Text style={styles.eventLocation}>Location: {this.event.location}</Text>
+          <Text style={styles.eventTime}>
+            {new Date(this.event.startsOn) > new Date() ? 'Starts' : 'Started'}: 
+            {new Date(this.event.startsOn).toLocaleString()}
+          </Text>
+          <Text style={styles.eventDescription} numberOfLines={3}>
+            {stripHtmlTags(this.event.description)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+}
+
+class EventModalDisplay extends EventDisplay {
+  constructor(event, onClose) {
+    super();
+    this.event = event;
+    this.onClose = onClose;
+  }
+
+  render() {
+    return (
+      <View style={styles.centeredView}>
+        <View style={styles.modalView}>
+          <ScrollView contentContainerStyle={styles.modalContent}>
+            <View>
+              <Text style={styles.modalTitle}>{this.event.name}</Text>
+              <Text style={styles.modalLocation}>Location: {this.event.location}</Text>
+              <Text style={styles.modalTime}>
+                Starts: {new Date(this.event.startsOn).toLocaleString()}
+              </Text>
+              <Text style={styles.modalTime}>
+                Ends: {new Date(this.event.endsOn).toLocaleString()}
+              </Text>
+              <Text style={styles.modalDescription}>
+                {stripHtmlTags(this.event.description)}
+              </Text>
+            </View>
+          </ScrollView>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={this.onClose}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+}
+
+class EventDisplayFactory {
+  createDisplay() {
+    throw new Error('createDisplay() must be implemented');
+  }
+}
+
+class EventListFactory extends EventDisplayFactory {
+  createDisplay(event, onPress) {
+    return new EventListDisplay(event, onPress);
+  }
+}
+
+class EventModalFactory extends EventDisplayFactory {
+  createDisplay(event, onClose) {
+    return new EventModalDisplay(event, onClose);
+  }
+}
+
 const EventsScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation()
+
+  // State variables
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,101 +162,29 @@ const EventsScreen = () => {
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [userBookmarks, setUserBookmarks] = useState([]); 
 
-  // Fetch user bookmarks
-  const fetchUserBookmarks = async () => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) return;
+  const listFactory = new EventListFactory();
+  const modalFactory = new EventModalFactory();
 
-    const userRef = doc(db, 'users', userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      setUserBookmarks(userSnap.data().bookmarks || []);
-    } else {
-      setUserBookmarks([]);
-    }
-  };
-
-  // Store events in Firestore
-  const storeEventsInFirestore = async (eventsData) => {
-    const eventsCollection = collection(db, 'wsuevents');
-
-    for (const event of eventsData) {
-      const eventRef = doc(eventsCollection, event.id); 
-      await setDoc(eventRef, {
-        name: event.name,
-        location: event.location, 
-        startsOn: event.startsOn, 
-        endsOn: event.endsOn, 
-        description: event.description, 
-      }, { merge: true }); 
-    }
-  };
-
-  // Fetch events data
   const fetchEventsData = useCallback(async () => { 
     try {
-      const eventsData = await fetchEvents();
-      if (eventsData && Array.isArray(eventsData.value)) {
-        await storeEventsInFirestore(eventsData.value); 
-        const now = new Date();
-        const sortedEvents = eventsData.value
-          .sort((a, b) => {
-            const diffA = Math.abs(now - new Date(a.startsOn));    
-            const diffB = Math.abs(now - new Date(b.startsOn));
-            return diffA - diffB;
-          })
-          .slice(0, 25);
-        
-        // Set bookmark status for each event
-        const eventsWithBookmarks = sortedEvents.map(event => ({
-          ...event,
-          isBookmarked: userBookmarks.includes(event.id), 
-        }));
-
-        setEvents(eventsWithBookmarks);
-        console.log('Fetched and sorted events:', eventsWithBookmarks.length);
-      } else {
-        console.log('No events found', eventsData);
-        setEvents([]);
-      }
+      await act(async () => {
+        await fetchEvents(setEvents);
+      });
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      act(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
     }
-  }, [userBookmarks]);
-
-  // Toggle bookmark status
-  const toggleBookmark = async (eventId, isBookmarked) => {
-    try {
-      const userId = auth.currentUser?.uid; 
-      if (!userId) {
-        console.error("User is not authenticated");
-        return; 
-      }
-
-      const userRef = doc(db, 'users', userId); 
-
-      await updateDoc(userRef, { bookmarks: isBookmarked ? arrayRemove(eventId) : arrayUnion(eventId) });
-      
-      setUserBookmarks(prev => isBookmarked ? prev.filter(id => id !== eventId) : [...prev, eventId]);
-      
-      fetchEventsData(); 
-    } catch (error) {
-      console.error("Error updating bookmark: ", error); 
-      Alert.alert("Failed to update bookmark");
-    }
-  };
-
-  useEffect(() => {
-    fetchUserBookmarks().then(fetchEventsData);
   }, []);
 
-  // Listen for app state changes
   useEffect(() => {
+    fetchEventsData(); 
+
+    // Listen for app state changes
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') { // If app is inactive, fetch events
         console.log('App is active');
@@ -175,6 +214,26 @@ const EventsScreen = () => {
     setSelectedEvent(null);
   };
 
+  const renderEventItem = ({ item }) => {
+    const eventDisplay = listFactory.createDisplay(item, openEventDetails);
+    return eventDisplay.render();
+  };
+
+  const renderEventModal = () => {
+    if (!selectedEvent) return null;
+    const eventDisplay = modalFactory.createDisplay(selectedEvent, closeEventDetails);
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeEventDetails}
+      >
+        {eventDisplay.render()}
+      </Modal>
+    );
+  };
+
   if (loading) { // Loading indicator
     return (
       <View style={styles.loadingContainer}>
@@ -201,71 +260,17 @@ const EventsScreen = () => {
         <FlatList
           data={events}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => openEventDetails(item)}> 
-              <View style={styles.eventItem}>
-                <Text style={styles.eventTitle}>{item.name}</Text>
-                <Text style={styles.eventLocation}>Location: {item.location}</Text>
-                <Text style={styles.eventTime}>
-                  {new Date(item.startsOn) > new Date() ? 'Starts' : 'Started'}: {new Date(item.startsOn).toLocaleString()}
-                </Text>
-                <Text style={styles.eventDescription} numberOfLines={3}>
-                  {stripHtmlTags(item.description)}
-                </Text>
-                <View style={styles.bookmarkContainer}>
-                <TouchableOpacity onPress={() => toggleBookmark(item.id, item.isBookmarked)}>
-                  <FontAwesome 
-                    name={item.isBookmarked ? "bookmark" : "bookmark-o"} 
-                    size={24} 
-                    color={item.isBookmarked ? "#0C5449" : "grey"} 
-                  />
-                
-                </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
-          )}
+          renderItem={renderEventItem}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              testID="refresh-control"
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+            />
           }
         />
       )}
-
-      {/* Modal for event details */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={closeEventDetails}
-      >
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <ScrollView contentContainerStyle={styles.modalContent}>
-              {selectedEvent && (
-                <View>
-                  <Text style={styles.modalTitle}>{selectedEvent.name}</Text>
-                  <Text style={styles.modalLocation}>Location: {selectedEvent.location}</Text>
-                  <Text style={styles.modalTime}>
-                    Starts: {new Date(selectedEvent.startsOn).toLocaleString()}
-                  </Text>
-                  <Text style={styles.modalTime}>
-                    Ends: {new Date(selectedEvent.endsOn).toLocaleString()}
-                  </Text>
-                  <Text style={styles.modalDescription}>
-                    {stripHtmlTags(selectedEvent.description)}
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={closeEventDetails}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {renderEventModal()}
     </View>
   );
 };
@@ -306,11 +311,6 @@ const styles = StyleSheet.create({
   },
   eventDescription: {
     marginTop: 5,
-  },
-  bookmarkContainer: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
   },
   header: {
     flexDirection: 'row',
@@ -384,11 +384,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  bookmarkText: {
-    color: '#0C5449',
-    marginTop: 5,
-    fontWeight: 'bold',
-  },
 });
-
 export default EventsScreen;

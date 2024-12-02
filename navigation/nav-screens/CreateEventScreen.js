@@ -1,7 +1,7 @@
 // CreateEventScreen.js
 import React, { useState } from 'react';
 import { StyleSheet, TextInput, Button, Switch, Text, View, Alert } from 'react-native';
-import { db, auth } from '../../firebase'; // Import Firestore and Auth
+import { db, auth } from '../../firebase'; // Firestore and Auth imports
 import { collection, addDoc } from 'firebase/firestore'; // Firestore functions
 import { useNavigation } from '@react-navigation/native';
 
@@ -11,9 +11,10 @@ const CreateEventScreen = () => {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [date, setDate] = useState('');
-  const [startTime, setStartTime] = useState(''); // Start time state
-  const [endTime, setEndTime] = useState(''); // End time state
-  const [isPublic, setIsPublic] = useState(false); // For toggling public/private events
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
+  const [tags, setTags] = useState(''); // Tags input state
 
   // Function to handle event creation
   const handleCreateEvent = async () => {
@@ -28,11 +29,12 @@ const CreateEventScreen = () => {
       const eventData = {
         title,
         description,
-        date, // Keep date as MM/DD/YYYY
+        date,
         startTime,
         endTime,
         location,
         isPublic,
+        tags: tags.split(',').map(tag => tag.trim()).slice(0, 2), // Process and limit tags to 2
         createdBy: user.uid,
         creatorEmail: user.email,
         createdAt: new Date(),
@@ -48,9 +50,10 @@ const CreateEventScreen = () => {
       setDescription('');
       setLocation('');
       setDate('');
-      setStartTime(''); // Clear start time
-      setEndTime('');   // Clear end time
+      setStartTime('');
+      setEndTime('');
       setIsPublic(false);
+      setTags('');
     } catch (error) {
       console.error("Error adding event: ", error);
       Alert.alert("Failed to create event");
@@ -95,6 +98,12 @@ const CreateEventScreen = () => {
         value={endTime}
         onChangeText={setEndTime}
       />
+      <TextInput
+        style={styles.input}
+        placeholder="Tags (e.g., guidance, networking)"
+        value={tags}
+        onChangeText={setTags} // Update the tags state
+      />
       <View style={styles.switchContainer}>
         <Text style={styles.link}>Make this event public?</Text>
         <Switch
@@ -102,7 +111,9 @@ const CreateEventScreen = () => {
           onValueChange={setIsPublic} // Toggle public/private
         />
       </View>
-      <Button color="#0C5449" title="Create Event" onPress={handleCreateEvent} />
+      <View style={styles.buttonContainer}>
+        <Button color="#0C5449" title="Create Event" onPress={handleCreateEvent} />
+      </View>
     </View>
   );
 };
@@ -113,22 +124,28 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     backgroundColor: '#f3f4f3',
+    flex: 1,
   },
   input: {
     backgroundColor: '#fff',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 5,
+    padding: 12,
+    marginBottom: 12,
+    borderRadius: 10,
     borderColor: '#ccc',
     borderWidth: 1,
   },
   link: {
     color: '#0C5449',
     fontSize: 16,
+    fontWeight: 'normal',
   },
   switchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  buttonContainer: {
+    borderRadius: 10,
+    overflow: 'hidden',
   },
 });

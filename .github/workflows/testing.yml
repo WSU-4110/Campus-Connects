@@ -25,7 +25,7 @@ jobs:
         run: yarn install
 
       - name: Run unit tests
-        run: yarn test --ci --silent  # Running your unit tests here
+        run: yarn test --ci --silent --detectOpenHandles
 
       - name: Verify Expo CLI (optional)
         run: npx expo --version  # Verifying Expo CLI version if needed

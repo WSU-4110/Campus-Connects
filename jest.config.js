@@ -1,7 +1,7 @@
 module.exports = {
     preset: 'react-native',
+    setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
     transformIgnorePatterns: [
-      "node_modules/(?!(@react-native|react-native|@react-navigation|react-navigation|expo|@testing-library)/)"
+      'node_modules/(?!(react-native|@react-native|@react-navigation|@testing-library)/)',
     ],
   };
-  

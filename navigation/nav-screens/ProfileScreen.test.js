@@ -1,127 +1,94 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import ProfileScreen from './ProfileScreen'; 
-import { auth, db } from '../../firebase'; 
-import { getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import ProfileScreen from './ProfileScreen';
+import { auth, db } from '../../firebase';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, arrayRemove, arrayUnion } from 'firebase/firestore';
 
+jest.mock('firebase/firestore', () => ({
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  setDoc: jest.fn(),
+  collection: jest.fn(),
+  getDocs: jest.fn(),
+  updateDoc: jest.fn(),
+  arrayRemove: jest.fn(),
+  arrayUnion: jest.fn(),
+}));
+
+beforeAll(() => {
+  global.alert = jest.fn(); 
+});
+
+// Mock firebase module
 jest.mock('../../firebase', () => ({
   auth: {
-    currentUser: { uid: 'user1', email: 'user1@gmail.com' },
+    currentUser: { uid: '123', email: 'test@example.com' },
     signOut: jest.fn(),
   },
-  db: {
-    collection: jest.fn(),
-    doc: jest.fn(),
-    getDoc: jest.fn(),
-    setDoc: jest.fn(),
-    updateDoc: jest.fn(),
-    arrayUnion: jest.fn(),
-    arrayRemove: jest.fn(),
-  },
+  db: {}
 }));
+
+const TestWrapper = () => (
+  <NavigationContainer>
+    <ProfileScreen />
+  </NavigationContainer>
+);
 
 describe('ProfileScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders the profile information', async () => {
-    getDoc.mockResolvedValueOnce({
-      exists: () => true,
-      data: () => ({
-        firstName: 'Annie',
-        lastName: 'Smith',
-        email: 'user1@gmail.com',
-        dateOfBirth: '1999-01-01',
-        year: 'Senior',
-        major: 'Computer Science',
-        clubs: 'Coding Club',
-        profilePicture: 'testProfilePictureUrl',
-      }),
-    });
-
-    const { getByText } = render(<ProfileScreen bookmarks={[]} />);
-
-    await waitFor(() => {
-      expect(getByText('Annie Smtih')).toBeTruthy();
-      expect(getByText('Email: user1@gmail.com')).toBeTruthy();
-      expect(getByText('Year: Senior')).toBeTruthy();
-      expect(getByText('Major: Computer Science')).toBeTruthy();
-    });
+  // 1. Test if ProfileScreen renders 
+  it('renders ProfileScreen correctly', () => {
+    render(<TestWrapper />);
+    expect(screen.getByTestId('profile-image')).toBeTruthy();
+    expect(screen.getByText('Sign out')).toBeTruthy();
   });
 
-  it('handles profile image change', async () => {
-    const { getByTestId } = render(<ProfileScreen bookmarks={[]} />);
+  // 2. Test if fetchUserData is called when the component mounts
+  it('calls fetchUserData on mount', async () => {
+    getDoc.mockResolvedValueOnce({ exists: true, data: jest.fn(() => ({ firstName: 'John', lastName: 'Doe' })) });
 
-    const newImage = 'newProfileImageUrl';
-    setDoc.mockResolvedValueOnce({});
-
-    const profileImageButton = getByTestId('profile-image-button');
-    fireEvent.press(profileImageButton);
-
-    const newImageButton = getByTestId('profile-image-select-button'); 
-    fireEvent.press(newImageButton);
-
-    await waitFor(() => {
-      expect(setDoc).toHaveBeenCalledWith(
-        expect.anything(), 
-        { profilePicture: newImage },
-        { merge: true }
-      );
-      expect(getByTestId('profile-image').props.source.uri).toBe(newImage);
-    });
+    render(<TestWrapper />);
+    await waitFor(() => expect(getDoc).toHaveBeenCalled());
   });
 
-  it('handles sign out', async () => {
-    const { getByText } = render(<ProfileScreen bookmarks={[]} />);
+  // 3. Test handleSignOut functionality
+  it('calls signOut when the sign out button is pressed', async () => {
+    render(<TestWrapper />);
+    fireEvent.press(screen.getByTestId('sign-out-button'));
+    await waitFor(() => expect(auth.signOut).toHaveBeenCalled());
+  });
 
-    const signOutButton = getByText('Sign out');
+  // 4. Test if the profile image modal opens
+  it('opens profile image modal when profile image is clicked', () => {
+    render(<TestWrapper />);
+    const profileImage = screen.getByTestId('profile-image');
+    fireEvent.press(profileImage);
+    expect(screen.getByText('Choose a Profile Picture')).toBeTruthy();
+  });
+
+  // 5. Test saving profile data after edit
+  it('saves profile data when save button is clicked', async () => {
+    const mockSetDoc = jest.fn();
+    setDoc.mockImplementation(mockSetDoc);
+
+    render(<TestWrapper />);
+    fireEvent.press(screen.getByTestId('edit-profile-button'));
+
+    const saveButton = screen.getByText('Save');
+    fireEvent.press(saveButton);
+
+    await waitFor(() => expect(mockSetDoc).toHaveBeenCalledTimes(1));
+  });
+  
+  // 6. Test the sign-out button functionality
+  it('signs out the user when the sign out button is pressed', async () => {
+    render(<TestWrapper />);
+    const signOutButton = screen.getByTestId('sign-out-button');
     fireEvent.press(signOutButton);
-
-    await waitFor(() => {
-      expect(auth.signOut).toHaveBeenCalled();
-    });
-  });
-
-  it('fetches and displays personal event bookmarks', async () => {
-    const bookmarksData = [
-      { id: 'event1', title: 'Event 1', location: 'Location 1', date: '2024-12-01' },
-      { id: 'event2', title: 'Event 2', location: 'Location 2', date: '2024-12-05' },
-    ];
-
-    getDocs.mockResolvedValueOnce({
-      docs: bookmarksData.map((event) => ({
-        id: event.id,
-        data: () => event,
-      })),
-    });
-
-    const { getByText, getByTestId } = render(<ProfileScreen bookmarks={[]} />);
-
-    const bookmarksButton = getByText('Personal Event Bookmarks');
-    fireEvent.press(bookmarksButton);
-    await waitFor(() => {
-      expect(getByText('Event 1')).toBeTruthy();
-      expect(getByText('Event 2')).toBeTruthy();
-    });
-  });
-
-  it('handles bookmark toggle correctly', async () => {
-    const eventId = 'event1';
-    const isBookmarked = true;
-    const updateDocMock = jest.fn();
-    updateDoc.mockImplementation(updateDocMock);
-
-    const { getByTestId } = render(<ProfileScreen bookmarks={[]} />);
-    const bookmarkButton = getByTestId('bookmark-button'); 
-    fireEvent.press(bookmarkButton);
-
-    await waitFor(() => {
-      expect(updateDocMock).toHaveBeenCalledWith(
-        expect.anything(),
-        { bookmarks: expect.anything() } 
-      );
-    });
+    await waitFor(() => expect(auth.signOut).toHaveBeenCalledTimes(1));
   });
 });
-

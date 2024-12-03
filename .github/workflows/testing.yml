@@ -10,32 +10,28 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest # or specify other runner environments if needed
+    runs-on: ubuntu-latest  # using Ubuntu runner
 
     steps:
       # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up Node.js (or your project language environment)
+      # Set up Node.js (you can use any node version your project is compatible with)
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '20'  # Use the required version of Node.js
+          node-version: '20'  # Specify the version of Node.js you want to use
 
       # Install dependencies
       - name: Install dependencies
-        run: yarn install # or npm install depending on your project
+        run: yarn install  # or `npm install` if you use npm
 
-      # Run the build script (if you have a build step)
-      - name: Build the project
-        run: yarn build # or npm run build depending on your setup
-
-      # Run the unit tests after the build
+      # Run unit tests
       - name: Run unit tests
-        run: yarn test --ci --silent # This runs the unit tests and ensures CI behavior
+        run: yarn test --ci --silent  # This runs the unit tests, ensure your jest config is set up
 
-      # Optionally, you can use 'continue-on-error' if you want the workflow to continue even if tests fail
-      # - name: Run unit tests
-      #   run: yarn test --ci --silent
-      #   continue-on-error: true
+      # Optionally, if you want to run Expo commands in CI, for example to start the app:
+      # Expo starts with `expo start` for local development, but since this is CI, we use non-interactive mode.
+      - name: Start Expo server (non-interactive)
+        run: expo start --non-interactive

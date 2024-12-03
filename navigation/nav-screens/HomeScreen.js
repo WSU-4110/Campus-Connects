@@ -340,8 +340,8 @@ const HomeScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchContainer}>
+    <View style={styles.container} testID="map-container">
+      <View style={styles.searchContainer} testID="search-container">
         <Ionicons name="search" size={20} color="gray" style={styles.searchIcon} />
         <TextInput
           style={styles.searchBar}
@@ -393,6 +393,7 @@ const HomeScreen = () => {
         />
       )}
       <MapView
+        testID="map-view"
         ref={mapRef}
         style={styles.map}
         initialRegion={region}

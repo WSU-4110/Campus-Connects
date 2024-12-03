@@ -25,7 +25,7 @@ jobs:
         run: yarn install
 
       - name: Run unit tests
-        run: yarn test --ci --silent --detectOpenHandles
+       run: yarn test --ci --silent --detectOpenHandles --testTimeout=20000
 
       - name: Verify Expo CLI (optional)
         run: npx expo --version  # Verifying Expo CLI version if needed

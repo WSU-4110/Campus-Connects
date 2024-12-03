@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, ScrollView, Modal, Button, FlatList, Alert } from 'react-native';
 import { auth, db } from '../../firebase';
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/FontAwesome'; 
+
 
 import image1 from '../../assets/fall.png';
 import image2 from '../../assets/sand.png';
@@ -114,6 +114,8 @@ const ProfileScreen = ({ bookmarks }) => {
     }
   };
 
+  
+
   const handleSave = async () => {
     try {
       const docRef = doc(db, 'profile', auth.currentUser.uid);
@@ -182,37 +184,40 @@ const ProfileScreen = ({ bookmarks }) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton}>
+        <TouchableOpacity onPress={handleSignOut} style={styles.signOutButton} testID="sign-out-button">
           <Text style={styles.signOutText}>Sign out</Text>
         </TouchableOpacity>
       </View>
-
+  
       {/* Profile Image */}
-      <TouchableOpacity onPress={() => setProfileImageModalVisible(true)}>
+      <TouchableOpacity onPress={() => setProfileImageModalVisible(true)} testID="profile-image">
         <Image source={userData.profilePicture} style={styles.profileImage} />
       </TouchableOpacity>
-
-
+  
       <Text style={styles.header}>
         {userData.firstName && userData.lastName 
           ? `${userData.firstName} ${userData.lastName}` 
           : 'Profile Information'}
       </Text>
-
+  
       {/* View Bookmarks Button */}
       <TouchableOpacity 
         style={styles.bookmarksButton}
-        onPress={() => { fetchBookmarkedEvents(); setBookmarksModalVisible(true); }}>
+        onPress={() => { fetchBookmarkedEvents(); setBookmarksModalVisible(true); }} 
+        testID="personal-bookmarks-button"
+      >
         <Text style={styles.bookmarksButtonText}>Personal Event Bookmarks</Text>
       </TouchableOpacity>
-
+  
       {/* WSU Event Bookmarks Button */}
       <TouchableOpacity 
         style={styles.bookmarksButton}
-        onPress={() => { fetchWsuBookmarkedEvents(); setWsuBookmarksModalVisible(true); }}>
+        onPress={() => { fetchWsuBookmarkedEvents(); setWsuBookmarksModalVisible(true); }} 
+        testID="wsu-bookmarks-button"
+      >
         <Text style={styles.bookmarksButtonText}>WSU Event Bookmarks</Text>
       </TouchableOpacity>
-
+  
       {/* Profile Information */}
       <View style={styles.infoContainer}>
         {Object.keys(userData)
@@ -226,11 +231,11 @@ const ProfileScreen = ({ bookmarks }) => {
             </View>
           ))}
       </View>
-
-      <TouchableOpacity onPress={() => { setEditableData(userData); setModalVisible(true); }} style={styles.editButton}>
+  
+      <TouchableOpacity onPress={() => { setEditableData(userData); setModalVisible(true); }} style={styles.editButton} testID="edit-profile-button">
         <Text style={styles.editButtonText}>Edit Profile</Text>
       </TouchableOpacity>
-
+  
       {/* Profile Edit Modal */}
       <Modal
         visible={isModalVisible}
@@ -238,28 +243,28 @@ const ProfileScreen = ({ bookmarks }) => {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-        <Text style={styles.modalHeader}>Edit Profile</Text>
-          {Object.keys(userData)
-            .filter((key) => key !== 'profilePicture') // Exclude profilePicture field
-            .map((key) => (
-              <View key={key} style={styles.modalInputRow}>
-                <Text style={styles.label}>{key.charAt(0).toUpperCase() + key.slice(1)}:</Text>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalHeader}>Edit Profile</Text>
+            {Object.keys(userData)
+              .filter((key) => key !== 'profilePicture') 
+              .map((key) => (
+                <View key={key} style={styles.modalInputRow}>
+                  <Text style={styles.label}>{key.charAt(0).toUpperCase() + key.slice(1)}:</Text>
                   <TextInput
+                    testID={`${key}-input`}  
                     style={styles.modalInput}
                     value={editableData[key]}
                     onChangeText={(text) => setEditableData({ ...editableData, [key]: text })}
                   />
                 </View>
-                ))}
-              <Button title="Save" onPress={handleSave} />
+              ))}
+            <Button title="Save" onPress={handleSave} />
             <Button title="Cancel" onPress={() => setModalVisible(false)} color="red" />
           </View>
         </View>
       </Modal>
-
-
+  
       {/* Bookmarks Modal */}
       <Modal
         visible={bookmarksModalVisible}
@@ -270,13 +275,12 @@ const ProfileScreen = ({ bookmarks }) => {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalHeader}>Personal Bookmarked Events</Text>
-
+  
             <FlatList
               data={bookmarkedEvents}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => {
                 const isBookmarked = bookmarkedEvents.some(event => event.id === item.id);
-
                 return (
                   <TouchableOpacity 
                     style={styles.eventCard}
@@ -285,16 +289,16 @@ const ProfileScreen = ({ bookmarks }) => {
                     <Text style={styles.eventTitle}>{item.title}</Text>
                     <Text style={styles.eventLocation}>Location: {item.location || 'N/A'}</Text>
                     <Text style={styles.eventDate}>Date: {item.date || 'N/A'}</Text>
-
+  
                     {/* Bookmark Icon */}
                     <View style={styles.bookmarkContainer}>
-                    <TouchableOpacity onPress={() => toggleBookmark(item.id, isBookmarked)}>
-                      <Icon
-                        name={isBookmarked ? 'bookmark' : 'bookmark-o'}
-                        size={24}
-                        color={isBookmarked ? '#0C5449' : 'grey'}
-                      />
-                    </TouchableOpacity>
+                      <TouchableOpacity onPress={() => toggleBookmark(item.id, isBookmarked)}>
+                        <Icon
+                          name={isBookmarked ? 'bookmark' : 'bookmark-o'}
+                          size={24}
+                          color={isBookmarked ? '#0C5449' : 'grey'}
+                        />
+                      </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
                 );
@@ -304,7 +308,7 @@ const ProfileScreen = ({ bookmarks }) => {
           </View>
         </View>
       </Modal>
-
+  
       {/* Profile Image Selection Modal */}
       <Modal
         visible={profileImageModalVisible}
@@ -317,7 +321,11 @@ const ProfileScreen = ({ bookmarks }) => {
             <Text style={styles.modalHeader}>Choose a Profile Picture</Text>
             <View style={styles.imageGrid}>
               {[image1, image2, image3, image4, image5, image6, image7, image8, image9].map((image, index) => (
-                <TouchableOpacity key={index} onPress={() => handleProfileImageChange(image)}>
+                <TouchableOpacity 
+                  key={index} 
+                  onPress={() => handleProfileImageChange(image)} 
+                  testID={`profile-image-option-${index}`}
+                >
                   <Image source={image} style={styles.gridImage} />
                 </TouchableOpacity>
               ))}
@@ -326,58 +334,9 @@ const ProfileScreen = ({ bookmarks }) => {
           </View>
         </View>
       </Modal>
-
-      {/* WSU Bookmarks Modal */}
-      <Modal
-        visible={wsuBookmarksModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setWsuBookmarksModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>WSU Bookmarked Events</Text>
-
-            <FlatList
-              data={wsuBookmarkedEvents}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={styles.eventCard}
-                  onPress={() => handleEventClick(item)} 
-                >
-                  <Text style={styles.eventTitle}>{item.name}</Text>
-                  <Text style={styles.eventLocation}>Location: {item.location || 'N/A'}</Text>
-                  <Text style={styles.eventDate}>Date: {item.startsOn || 'N/A'}</Text>
-                </TouchableOpacity>
-              )}
-            />
-            <Button title="Close" onPress={() => setWsuBookmarksModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
-
-      {/* Event Details Modal */}
-      {selectedEvent && (
-        <Modal
-          visible={selectedEvent !== null}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setSelectedEvent(null)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalHeader}>{selectedEvent.title}</Text>
-              <Text style={styles.eventDescription}>{selectedEvent.description}</Text>
-              <Text style={styles.eventLocation}>Location: {selectedEvent.location}</Text>
-              <Text style={styles.eventDate}>Date: {selectedEvent.date}</Text>
-              <Button title="Close" onPress={() => setSelectedEvent(null)} />
-            </View>
-          </View>
-        </Modal>
-      )}
     </ScrollView>
   );
+  
 };
 
 const styles = StyleSheet.create({
@@ -539,4 +498,3 @@ const styles = StyleSheet.create({
 });
 
 export default ProfileScreen;
-

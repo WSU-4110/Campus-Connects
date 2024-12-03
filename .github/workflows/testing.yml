@@ -1,0 +1,33 @@
+name: Ifrat_Unitest
+
+on:
+  push:
+    branches:
+      - Ifrat_Unittest
+  pull_request:
+    branches:
+      - Ifrat_Unittest
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Run unit tests
+        run: yarn test --ci --silent --detectOpenHandles --testTimeout=20000
+
+      - name: Verify Expo CLI (optional)
+        run: npx expo --version  # Verifying Expo CLI version if needed
+
+      # Remove the "Build the project" and "Start Expo server" steps

@@ -1,0 +1,41 @@
+name: Ifrat_Unitest
+
+on:
+  push:
+    branches:
+      - Ifrat_Unittest # or specify the branch you want to trigger the workflow on
+  pull_request:
+    branches:
+      - Ifrat_Unittest # or specify the branch you want to trigger the workflow on
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # or specify other runner environments if needed
+
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Set up Node.js (or your project language environment)
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'  # Use the required version of Node.js
+
+      # Install dependencies
+      - name: Install dependencies
+        run: yarn install # or npm install depending on your project
+
+      # Run the build script (if you have a build step)
+      - name: Build the project
+        run: yarn build # or npm run build depending on your setup
+
+      # Run the unit tests after the build
+      - name: Run unit tests
+        run: yarn test --ci --silent # This runs the unit tests and ensures CI behavior
+
+      # Optionally, you can use 'continue-on-error' if you want the workflow to continue even if tests fail
+      # - name: Run unit tests
+      #   run: yarn test --ci --silent
+      #   continue-on-error: true

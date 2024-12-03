@@ -8,6 +8,7 @@ on:
     branches:
       - Ifrat_Unittest # or specify the branch you want to trigger the workflow on
 
+
 jobs:
   build:
     runs-on: ubuntu-latest  # using Ubuntu runner
@@ -27,11 +28,16 @@ jobs:
       - name: Install dependencies
         run: yarn install  # or `npm install` if you use npm
 
+      # Install expo-cli globally
+      - name: Install expo-cli
+        run: npm install -g expo-cli
+
       # Run unit tests
       - name: Run unit tests
         run: yarn test --ci --silent  # This runs the unit tests, ensure your jest config is set up
 
-      # Optionally, if you want to run Expo commands in CI, for example to start the app:
-      # Expo starts with `expo start` for local development, but since this is CI, we use non-interactive mode.
+      # Start Expo server (non-interactive mode)
       - name: Start Expo server (non-interactive)
-        run: expo start --non-interactive
+        run: expo start --non-interactive --dev --no-minify
+
+      # Optionally, you can add more steps to build or deploy the app if needed

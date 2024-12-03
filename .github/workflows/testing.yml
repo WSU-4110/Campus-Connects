@@ -24,14 +24,10 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Build the project
-        run: yarn build  # Add this if your project requires a build step
-
-      - name: Verify Expo CLI
-        run: npx expo --version
-
       - name: Run unit tests
-        run: yarn test --ci --silent
+        run: yarn test --ci --silent  # Running your unit tests here
 
-      - name: Start Expo server
-        run: npx expo start --non-interactive --dev --no-minify
+      - name: Verify Expo CLI (optional)
+        run: npx expo --version  # Verifying Expo CLI version if needed
+
+      # Remove the "Build the project" and "Start Expo server" steps

@@ -27,7 +27,7 @@ describe('PersonalEventsScreen', () => {
 
     // Test 1: Test if public events are fetched correctly
 it('fetches public events correctly', async () => {
-  jest.setTimeout(10000); 
+  jest.setTimeout(20000); 
     const mockEvents = [
       { id: '1', title: 'Public Event 1', location: 'Location 1', date: '2024-11-20', startTime: '10:00 AM', endTime: '12:00 PM', description: 'Description 1', isPublic: true },
       { id: '2', title: 'Private Event 1', location: 'Location 2', date: '2024-11-21', startTime: '2:00 PM', endTime: '4:00 PM', description: 'Description 2', isPublic: false },

@@ -3681,10 +3681,10 @@ expo-modules-core@2.0.2:
   dependencies:
     invariant "^2.2.4"
 
-expo-router@^4.0.5:
-  version "4.0.5"
-  resolved "https://registry.npmjs.org/expo-router/-/expo-router-4.0.5.tgz"
-  integrity sha512-bZ2eLvY3I9BwkFRWhz71EA2clbYdb6iN83RY3clD6FGpDTzJ6/pxC+bwxtJpspblVqKUZgzYJR+i5cZ3dY9djA==
+expo-router@^4.0.9:
+  version "4.0.9"
+  resolved "https://registry.yarnpkg.com/expo-router/-/expo-router-4.0.9.tgz#37fe346761f2c7aa6dfc6d7625669d4aefda155d"
+  integrity sha512-bZupRd2nUWolihwhW2kqTTAVyhMaHJbtEFn49bOHtrfl0gkIHld+IecUIh+eJW6QTAcTOHCu5gVHLoJeM0mwjA==
   dependencies:
     "@expo/metro-runtime" "4.0.0"
     "@expo/server" "^0.5.0"

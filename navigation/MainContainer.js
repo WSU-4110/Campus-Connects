@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import HomeScreen from './nav-screens/HomeScreen';
 import ProfileScreen from './nav-screens/ProfileScreen';
-import EventsScreen from './nav-screens/EventsScreen';
+import EventsScreenAlt from './nav-screens/EventsScreenAlt';
 
 const Tab = createBottomTabNavigator();
 
@@ -32,9 +32,9 @@ export default function MainContainer() {
         >
             <Tab.Screen 
                 name="Events" 
-                component={EventsScreen} 
+                component={EventsScreenAlt} 
                 options={{ 
-                    headerTitle: 'Events'
+                    headerShown: false 
                 }} 
             />
             <Tab.Screen 

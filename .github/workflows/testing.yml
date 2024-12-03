@@ -3,41 +3,35 @@ name: Ifrat_Unitest
 on:
   push:
     branches:
-      - Ifrat_Unittest # or specify the branch you want to trigger the workflow on
+      - Ifrat_Unittest
   pull_request:
     branches:
-      - Ifrat_Unittest # or specify the branch you want to trigger the workflow on
-
+      - Ifrat_Unittest
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # using Ubuntu runner
+    runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up Node.js (you can use any node version your project is compatible with)
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '20'  # Specify the version of Node.js you want to use
+          node-version: '20'
 
-      # Install dependencies
       - name: Install dependencies
-        run: yarn install  # or `npm install` if you use npm
+        run: yarn install
 
-      # Install expo-cli globally
-      - name: Install expo-cli
-        run: npm install -g expo-cli
+      - name: Build the project
+        run: yarn build  # Add this if your project requires a build step
 
-      # Run unit tests
+      - name: Verify Expo CLI
+        run: npx expo --version
+
       - name: Run unit tests
-        run: yarn test --ci --silent  # This runs the unit tests, ensure your jest config is set up
+        run: yarn test --ci --silent
 
-      # Start Expo server (non-interactive mode)
-      - name: Start Expo server (non-interactive)
-        run: expo start --non-interactive --dev --no-minify
-
-      # Optionally, you can add more steps to build or deploy the app if needed
+      - name: Start Expo server
+        run: npx expo start --non-interactive --dev --no-minify

@@ -28,7 +28,7 @@
     "expo-image-picker": "^16.0.1",
     "expo-linking": "^7.0.2",
     "expo-location": "~17.0.1",
-    "expo-router": "^4.0.5",
+    "expo-router": "^4.0.11",
     "expo-status-bar": "^2.0.0",
     "express": "^4.21.1",
     "firebase": "^10.14.1",

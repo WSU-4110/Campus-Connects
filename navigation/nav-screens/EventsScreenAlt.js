@@ -174,6 +174,7 @@ const EventsScreenAlt = () => {
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.button}
+            onPress={() => navigation.navigate('PersonalEvents')}
           >
             <Icon name="bookmark" size={16} color="#000" style={styles.icon} />
             <Text style={styles.buttonText}>View Bookmarks</Text>

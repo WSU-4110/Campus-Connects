@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useFonts } from 'expo-font';
 import { Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold } from '@expo-google-fonts/montserrat';
 import { useNavigation } from '@react-navigation/native';
@@ -57,6 +57,8 @@ const EventsScreenAlt = () => {
     Montserrat_500Medium,
     Montserrat_600SemiBold,
   });
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Functions from EventsScreen.js
   const fetchUserBookmarks = async () => {
@@ -144,19 +146,49 @@ const EventsScreenAlt = () => {
     }
   };
 
+  const openEventDetails = (event) => {
+    setSelectedEvent(event);
+    setModalVisible(true);
+  };
+
+  const closeEventDetails = () => {
+    setModalVisible(false);
+    setSelectedEvent(null);
+  };
+
   useEffect(() => {
-    fetchUserBookmarks().then(fetchEventsData);
+    const loadData = async () => {
+      setLoading(true); 
+      await fetchUserBookmarks();
+      await fetchEventsData();
+      setLoading(false); 
+    };
+    loadData();
   }, []);
+
+  if (loading) { // Loading indicator
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0C5449" />
+        <Text>Loading events...</Text>
+      </View>
+    );
+  }
 
   if (!fontsLoaded || loading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#0C5449" />
+        <Text>Loading events...</Text>
       </View>
     );
   }
+  
+  
 
   return (
+  
+ 
     <View style={styles.container}>
       
       <View style={styles.topContent}>
@@ -169,7 +201,7 @@ const EventsScreenAlt = () => {
             style={styles.button} 
             onPress={() => navigation.navigate('CreateEvent')}
           >
-            <Icon name="plus" size={16} color="#0C5449" style={styles.icon} />
+            <Icon name="plus" size={16} color="#000" style={styles.icon} />
             <Text style={styles.buttonText}>Create Event</Text>
           </TouchableOpacity>
           <TouchableOpacity 
@@ -180,11 +212,19 @@ const EventsScreenAlt = () => {
             <Text style={styles.buttonText}>View Bookmarks</Text>
           </TouchableOpacity>
         </View>
+
       </View>
 
-
-        <Text style={styles.headerText}>Wayne State University</Text>
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerText}>Wayne State University</Text>
+            <TouchableOpacity
+              onPress={() => navigation.push('Events')}
+            >
+              <Text style={styles.linkText}>View All</Text>
+          </TouchableOpacity>
+      </View>
         
+        <View style={styles.eventsContainer}>
         <ScrollView 
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -195,7 +235,7 @@ const EventsScreenAlt = () => {
                 <TouchableOpacity 
                     key={event.id} 
                     style={styles.eventCard}
-                    onPress={() => {/* handle event press */}}
+                    onPress={() => openEventDetails(event)}
                     activeOpacity={0.5} 
                 >
                     <Text style={styles.eventTitle} numberOfLines={2}>{event.name}</Text>
@@ -228,22 +268,58 @@ const EventsScreenAlt = () => {
                             {new Date(event.startsOn).toLocaleString()}
                         </Text>
 
-                        <TouchableOpacity 
-                        style={styles.bookmarkButton}
-                        onPress={() => toggleBookmark(event.id, event.isBookmarked)}
-                    >
-                        <Icon 
-                            name={event.isBookmarked ? "bookmark" : "bookmark-o"} 
-                            size={24} 
-                            color={event.isBookmarked ? "#0C5449" : "grey"} 
-                        />
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.bookmarkContainer}
+                          onPress={() => toggleBookmark(event.id, event.isBookmarked)}
+                        >
+                          <View style={styles.iconCircle}>
+                            <Icon
+                              name={event.isBookmarked ? "bookmark" : "bookmark-o"}
+                              size={24}
+                              color={event.isBookmarked ? "#0C5449" : "grey"}
+                            />
+                          </View>
+                      </TouchableOpacity>
                     </View>
                     
                     
                 </TouchableOpacity>
-            ))}
-        </ScrollView>
+              ))}
+          </ScrollView>
+        </View>
+
+        {/* Modal for event details */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeEventDetails}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <ScrollView contentContainerStyle={styles.modalScrollContent}>
+              {selectedEvent && (
+                <View>
+                  <Text style={styles.modalTitle}>{selectedEvent.name}</Text>
+                  <Text style={styles.modalLocation}>Location: {selectedEvent.location}</Text>
+                  <Text style={styles.modalTime}>
+                    Starts: {new Date(selectedEvent.startsOn).toLocaleString()}
+                  </Text>
+                  <Text style={styles.modalDescription}>
+                    {stripHtmlTags(selectedEvent.description)}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={closeEventDetails}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       </View>
     
   );
@@ -292,11 +368,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     top: '50%',
-    left: 15,
+    left: 25,
     right: 10,
   },
   button: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: 'white',
     borderRadius: 30,
@@ -312,8 +389,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#000',
     fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'Montserrat_500Medium',
+    fontFamily: 'Montserrat_600Semibold',
     textAlign: 'center',
     marginLeft: 5,
   },
@@ -333,14 +409,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: 'white',
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+
   },
   eventTitle: {
     marginTop:5,
@@ -371,18 +440,21 @@ const styles = StyleSheet.create({
     color: '#333',
     maxHeight: 75,
   },
-  bookmarkButton: {
-    position: 'absolute',
-    right: 12,
+  iconCircle: {
+    marginRight: 20,
+    width: 40,  
+    height: 40, 
+    borderRadius: 20, 
+    backgroundColor: '#e0fae2', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    overflow: 'hidden', 
   },
   headerText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    fontFamily: 'Montserrat_400Medium',
+    fontFamily: 'Montserrat_600SemiBold',
     marginBottom: 5,
     marginLeft: 20,
-    marginTop: -75,
-    
   },
   fixedPosition: {
     flexDirection: 'row',
@@ -390,6 +462,93 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 5,
   },
+
+linkText: {
+  color: 'grey', 
+  fontFamily: 'Montserrat_600Semibold',
+  fontSize: 16,
+},
+headerContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'left',
+  marginLeft: 0,
+  marginHorizontal: 20,
+  marginTop: -75, 
+  marginBottom: 0,
+},
+bookmarkContainer:{
+  marginLeft: 'auto',
+},
+loadingContainer: {
+  flex: 1,
+  justifyContent: 'center', 
+  alignItems: 'center',
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: '#E6E5E7',
+},
+centeredView: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+},
+modalView: {
+  margin: 20,
+  backgroundColor: 'white',
+  borderRadius: 10,
+  padding: 20,
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 2
+  },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+  elevation: 5,
+  width: '80%',
+  maxHeight: '70%',
+},
+modalScrollContent: {
+  paddingBottom: 20,
+},
+modalTitle: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  marginBottom: 5,
+  color: '#0C5449',
+},
+modalLocation: {
+  fontSize: 14,
+  marginBottom: 5,
+  fontWeight: 'bold',
+},
+modalTime: {
+  fontSize: 14,
+  marginBottom: 5,
+  fontWeight: 'bold',
+},
+modalDescription: {
+  fontSize: 14,
+  marginTop: 5
+},
+closeButton: {
+  backgroundColor: '#0C5449',
+  borderRadius: 10,
+  padding: 8,
+  elevation: 2,
+  marginTop: 10, 
+},
+closeButtonText: {
+  color: 'white',
+  fontWeight: 'bold',
+  textAlign: 'center',
+},
 });
 
 export default EventsScreenAlt;

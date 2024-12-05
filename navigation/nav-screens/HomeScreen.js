@@ -3,6 +3,8 @@ import { StyleSheet, View, TextInput, Alert, Modal, Text, TouchableOpacity, Flat
 import MapView, { Marker, Polygon, PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 // Replace this with your actual API key
 const GOOGLE_MAPS_API_KEY = 'AIzaSyDErTBfHz5vRT8AafrF1B5PgErR8MKJAsk';
@@ -149,6 +151,8 @@ const HomeScreen = () => {
   const [showDirections, setShowDirections] = useState(false);
   const [routeMarkers, setRouteMarkers] = useState([]);
   const [isFollowingUser, setIsFollowingUser] = useState(false);
+  const [eventLocations, setEventLocations] = useState([]);
+  const [eventsModalVisible, setEventsModalVisible] = useState(false);
 
   const ACCURACY_THRESHOLD = 20; // meters
 
@@ -220,6 +224,22 @@ const HomeScreen = () => {
     }
   };
 
+  const fetchEvents = async () => {
+    try {
+      const eventsCollection = collection(db, 'events');
+      const eventSnapshot = await getDocs(eventsCollection);
+      const eventsList = eventSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      console.log('Fetched events:', eventsList);
+      setEventLocations(eventsList);
+      console.log('Event locations state set:', eventsList.length, 'events');
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+  };
+
   useEffect(() => {
     if (searchQuery.length > 2) {
       fetchAutocomplete(searchQuery);
@@ -277,6 +297,12 @@ const HomeScreen = () => {
         }
       };
     })();
+  }, []);
+
+  useEffect(() => {
+    fetchEvents();
+    const interval = setInterval(fetchEvents, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleSearch = async (placeId = null) => {
@@ -517,6 +543,11 @@ const HomeScreen = () => {
         showsMyLocationButton={true}
         onPanDrag={() => setIsFollowingUser(false)}
         onPress={() => setIsFollowingUser(false)}
+        showsCompass={true}
+        compassStyle={{
+          top: 130,  // 80 (filter buttons) + some padding
+          right: 10,
+        }}
       >
         <Polygon
           coordinates={WSU_BOUNDARIES}
@@ -582,6 +613,95 @@ const HomeScreen = () => {
             ))}
           </>
         )}
+        {eventLocations.map((event) => {
+          console.log('Processing event:', event);
+          if (!event?.title || !event?.location) {
+            console.log('Skipping invalid event:', event);
+            return null;
+          }
+          
+          let coordinates = null;
+          const locationKey = event.location.toLowerCase().trim();
+          console.log('Looking for location:', locationKey);
+          
+          // Check WSU_BUILDINGS first
+          const academicBuilding = WSU_BUILDINGS.find(building => 
+            building.name.toLowerCase().includes(locationKey) ||
+            locationKey.includes(building.name.toLowerCase())
+          );
+          if (academicBuilding) {
+            console.log('Found matching academic building:', academicBuilding.name);
+            console.log('Setting coordinates to:', academicBuilding.location);
+            coordinates = {
+              latitude: academicBuilding.location.lat,
+              longitude: academicBuilding.location.lng
+            };
+          }
+          
+          // Check WSU_PARKING if not found in buildings
+          if (!coordinates) {
+            const parkingStructure = WSU_PARKING.find(parking => 
+              parking.name.toLowerCase().includes(locationKey) ||
+              locationKey.includes(parking.name.toLowerCase()) ||
+              locationKey.includes(parking.description.toLowerCase())
+            );
+            if (parkingStructure) {
+              console.log('Found matching parking structure for:', event.title);
+              coordinates = {
+                latitude: parkingStructure.location.lat,
+                longitude: parkingStructure.location.lng
+              };
+            }
+          }
+          
+          // If no match found, use default WSU coordinates
+          if (!coordinates) {
+            console.log('No matching location found for:', event.title, 'Using default coordinates');
+            coordinates = {
+              latitude: 42.357341,
+              longitude: -83.069711
+            };
+          }
+
+          console.log('Creating marker with coordinates:', coordinates);
+          return (
+            <Marker
+              key={event.id}
+              coordinate={coordinates}
+              pinColor="#0C5449"
+              onPress={() => {
+                setSelectedPlace({
+                  name: event.title,
+                  formatted_address: event.location,
+                  date: `${event.date || 'TBD'} at ${event.startTime || 'TBD'}`,
+                  description: (
+                    <Text>
+                      {`Time: ${event.startTime || 'TBD'} - ${event.endTime || 'TBD'}
+Location: ${event.location}
+Attendees: ${Array.isArray(event.attendees) ? event.attendees.length : 0} people going
+
+${event.description || ''}
+
+Tags: ${event.tags?.join(', ') || 'None'}
+${event.isPublic ? '🌐 Public Event' : '🔒 Private Event'}`}
+                    </Text>
+                  ),
+                  geometry: {
+                    location: {
+                      lat: coordinates.latitude,
+                      lng: coordinates.longitude
+                    }
+                  }
+                });
+                setModalVisible(true);
+              }}
+            >
+              <View style={styles.eventMarker}>
+                <Ionicons name="calendar" size={24} color="#0C5449" />
+              </View>
+            </Marker>
+          );
+        })}
       </MapView>
 
       {showDirections && (
@@ -618,12 +738,13 @@ const HomeScreen = () => {
             {selectedPlace && (
               <>
                 <Text style={styles.modalTitle}>{selectedPlace.name}</Text>
-                <Text style={styles.modalText}>Address: {selectedPlace.formatted_address}</Text>
-                {selectedPlace.rating && (
-                  <Text style={styles.modalText}>Rating: {selectedPlace.rating} / 5</Text>
+                {selectedPlace.date && (
+                  <Text style={styles.modalDate}>{selectedPlace.date}</Text>
                 )}
-                {selectedPlace.types && (
-                  <Text style={styles.modalText}>Type: {selectedPlace.types.join(', ')}</Text>
+                {selectedPlace.description && (
+                  <Text style={[styles.modalText, styles.descriptionText]}>
+                    {selectedPlace.description}
+                  </Text>
                 )}
                 <TouchableOpacity
                   style={styles.navigationButton}
@@ -655,7 +776,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     position: 'absolute',
-    top: 40,
+    top: 20,
     left: 10,
     right: 10,
     flexDirection: 'row',
@@ -728,7 +849,7 @@ const styles = StyleSheet.create({
   },
   autocompleteList: {
     position: 'absolute',
-    top: 90, // Adjust based on your layout
+    top: 70,
     left: 10,
     right: 10,
     backgroundColor: 'white',
@@ -745,7 +866,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     position: 'absolute',
-    top: 90,
+    top: 80,
     left: 10,
     right: 10,
     zIndex: 1,
@@ -831,6 +952,19 @@ const styles = StyleSheet.create({
   markerText: {
     fontSize: 10,
     color: '#2196F3',
+  },
+  eventMarker: {
+    backgroundColor: 'white',
+    padding: 5,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#0C5449',
+  },
+  modalDate: {
+    fontSize: 16,
+    color: '#0C5449',
+    marginBottom: 10,
+    fontWeight: 'bold',
   },
 });
 

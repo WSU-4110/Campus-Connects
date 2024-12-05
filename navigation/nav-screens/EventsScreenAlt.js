@@ -2,10 +2,10 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useFonts } from 'expo-font';
 import { Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold } from '@expo-google-fonts/montserrat';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { db, auth } from '../../firebase';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, setDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, query, where, arrayRemove, setDoc, collection, getDocs } from 'firebase/firestore';
 
 const { width, height } = Dimensions.get('window');
 
@@ -49,6 +49,7 @@ const stripHtmlTags = (html) => {
 
 const EventsScreenAlt = () => {
   const [events, setEvents] = useState([]);
+  const [personalEvents, setPersonalEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userBookmarks, setUserBookmarks] = useState([]);
   const navigation = useNavigation();
@@ -156,15 +157,56 @@ const EventsScreenAlt = () => {
     setSelectedEvent(null);
   };
 
+// Fetching personal events
+
+  const PersonalEventsScreen = () => {
+    const navigation = useNavigation();
+    const [eventsData, setEventsData] = useState([]);
+    const [userBookmarks, setUserBookmarks] = useState([]); 
+    const [modalVisible, setModalVisible] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState(null);
+    const [isRegistered, setIsRegistered] = useState(false); 
+  }
+  
+  const fetchPersonalEvents = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'events')); 
+      const allEventsArray = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(), 
+      }));
+  
+      setPersonalEvents(allEventsArray);
+      console.log('Fetched all events:', allEventsArray.length); 
+    } catch (error) {
+      console.error('Error fetching all events:', error);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true); 
-      await fetchUserBookmarks();
-      await fetchEventsData();
+      await fetchUserBookmarks(); 
+      await fetchEventsData();  
+      await fetchPersonalEvents(); 
       setLoading(false); 
     };
-    loadData();
-  }, []);
+  
+    if (userBookmarks.length === 0) {  
+      loadData();
+    }
+  }, [userBookmarks]);  
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!userBookmarks.length) {  // Avoid re-fetching if already fetched
+        fetchUserBookmarks().then(() => {
+          fetchEventsData();
+          fetchPersonalEvents();
+        });
+      }
+    }, [userBookmarks])  
+  );
 
   if (loading) { // Loading indicator
     return (
@@ -183,9 +225,6 @@ const EventsScreenAlt = () => {
       </View>
     );
   }
-  
-  
-
   return (
   
  
@@ -287,6 +326,29 @@ const EventsScreenAlt = () => {
               ))}
           </ScrollView>
         </View>
+
+        {/* Personal Events Scroll */}
+
+        <View style={styles.personalEventsContainer}>
+            <Text style={styles.headerText}>Campus Connects</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={styles.eventsScrollContent}
+            >
+              {personalEvents.map((event) => (
+                <TouchableOpacity key={event.id} style={styles.eventCard}>
+                <Text style={styles.eventTitle}>{event.title}</Text>
+                <Text style={styles.eventLocation}>Location: {event.location || 'N/A'}</Text>
+                <Text style={styles.eventDate}>Date: {event.date || 'N/A'}</Text>
+                <Text style={styles.eventTime}>Starts: {event.startTime || 'N/A'} - Ends: {event.endTime || 'N/A'}</Text>
+                <Text style={styles.eventDescription} numberOfLines={3}>{event.description}</Text>
+                <Text style={styles.eventsStatus}>{event.isPublic ? "Public" : "Private"}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
 
         {/* Modal for event details */}
       <Modal
@@ -518,20 +580,20 @@ modalScrollContent: {
   paddingBottom: 20,
 },
 modalTitle: {
+  fontFamily: 'Montserrat_600Semibold',
   fontSize: 20,
-  fontWeight: 'bold',
   marginBottom: 5,
   color: '#0C5449',
 },
 modalLocation: {
   fontSize: 14,
   marginBottom: 5,
-  fontWeight: 'bold',
+  fontFamily: 'Montserrat_500Medium',
 },
 modalTime: {
   fontSize: 14,
   marginBottom: 5,
-  fontWeight: 'bold',
+  fontFamily: 'Montserrat_500Medium',
 },
 modalDescription: {
   fontSize: 14,
@@ -548,6 +610,27 @@ closeButtonText: {
   color: 'white',
   fontWeight: 'bold',
   textAlign: 'center',
+},
+personalEventsContainer: {
+  marginTop: 20,
+},
+personalEventsTitle: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: '#0C5449',
+  marginBottom: 10,
+},
+personalEventCard: {
+  backgroundColor: '#f9f9f9',
+  padding: 10,
+  marginRight: 10,
+  borderRadius: 5,
+  width: 150, 
+},
+eventDate: {
+  fontSize: 14,
+  marginBottom: 6,
+  fontFamily: 'Montserrat_500Medium',
 },
 });
 

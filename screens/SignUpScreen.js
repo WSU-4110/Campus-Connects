@@ -24,6 +24,8 @@ const SignUpScreen = () => {
     try {
       const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredentials.user;
+      
+      navigation.navigate("Onboard");
 
       // will send verification email
       await sendEmailVerification(user);

@@ -5,6 +5,8 @@ import { doc, setDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 
+
+
 const OnboardScreen = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -12,9 +14,25 @@ const OnboardScreen = () => {
   const [year, setYear] = useState('');
   const [major, setMajor] = useState('');
   const [clubs, setClubs] = useState('');
+  const [birthdayError, setBirthdayError] = useState(''); // Error state for birthday
   const navigation = useNavigation();
 
+  const validateDate = (date) => {
+    const datePattern = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-(19\d{2}|20[0-1][0-9]|202[0-5])$/;
+
+    if (!datePattern.test(date)) {
+      return "Invalid date (MM-DD-YYYY)";
+    }
+    return null;
+  };
+
   const handleSaveInfo = async () => {
+    const error = validateDate(dateOfBirth); // Validate the entered date of birth
+    if (error) {
+      setBirthdayError(error); // Set error message if validation fails
+      return; // Stop saving if there is an error
+    }
+
     try {
       const userId = auth.currentUser.uid;
 
@@ -27,7 +45,7 @@ const OnboardScreen = () => {
         clubs,
       }, { merge: true });
 
-      alert("Additional information saved. Verify your Email");
+      alert("Information saved. Verify your Email");
 
       await auth.signOut();
       navigation.navigate("Login"); 
@@ -53,11 +71,13 @@ const OnboardScreen = () => {
         style={styles.input}
       />
       <TextInput
-        placeholder="Date of Birth (YYYY-MM-DD)"
+        placeholder="Date of Birth (DD-MM-YYYY)"
         value={dateOfBirth}
         onChangeText={text => setDateOfBirth(text)}
         style={styles.input}
       />
+      {/* Display error message for invalid birthday */}
+      {birthdayError ? <Text style={styles.errorText}>{birthdayError}</Text> : null}
       <TextInput
         placeholder="Year"
         value={year}
@@ -78,7 +98,7 @@ const OnboardScreen = () => {
       />
 
       <TouchableOpacity onPress={handleSaveInfo} style={styles.button}>
-        <Text style={styles.buttonText}>Save Information</Text>
+        <Text style={styles.buttonText}>Save</Text>
       </TouchableOpacity>
     </KeyboardAvoidingView>
   );
@@ -94,26 +114,40 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    fontSize: 24,
+    fontSize: 30,
+    color: '#black',
     fontWeight: 'bold',
     marginBottom: 20,
+    fontFamily: 'Montserrat',
   },
   input: {
     width: '100%',
-    padding: 15,
-    borderRadius: 10,
-    backgroundColor: '#f0f0f0',
+    padding: 20,
+    borderRadius: 12,
+    backgroundColor: 'white',
     marginBottom: 15,
   },
   button: {
-    backgroundColor: '#0C5449',
+    backgroundColor: '#8CAE82',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    fontFamily: 'Montserrat',
     width: '100%',
+    
   },
   buttonText: {
     color: 'white',
+    fontSize: 19,
+    fontFamily: 'Montserrat',
     fontWeight: 'bold',
+
   },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginBottom: 15,
+    fontFamily: 'Montserrat',
+
+  }
 });

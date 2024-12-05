@@ -136,11 +136,20 @@ const EventsScreenAlt = () => {
         bookmarks: isBookmarked ? arrayRemove(eventId) : arrayUnion(eventId) 
       });
       
-      setUserBookmarks(prev => 
-        isBookmarked ? prev.filter(id => id !== eventId) : [...prev, eventId]
+      setEvents(prevEvents => 
+        prevEvents.map(event => 
+          event.id === eventId ? { ...event, isBookmarked: !isBookmarked } : event
+        )
+      );
+      
+      setPersonalEvents(prevPersonalEvents => 
+        prevPersonalEvents.map(event => 
+          event.id === eventId ? { ...event, isBookmarked: !isBookmarked } : event
+        )
       );
       
       fetchEventsData(); 
+      fetchPersonalEvents(); 
     } catch (error) {
       console.error("Error updating bookmark: ", error); 
       Alert.alert("Failed to update bookmark");
@@ -245,7 +254,7 @@ const EventsScreenAlt = () => {
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.button}
-            onPress={() => navigation.navigate('PersonalEvents')}
+            onPress={() => navigation.navigate('Bookmarks')}
           >
             <Icon name="bookmark" size={16} color="#000" style={styles.icon} />
             <Text style={styles.buttonText}>View Bookmarks</Text>
@@ -329,8 +338,17 @@ const EventsScreenAlt = () => {
 
         {/* Personal Events Scroll */}
 
+
+        <View style={styles.headerContainer2}>
+        <Text style={styles.headerText}>Campus Connects</Text>
+              <TouchableOpacity
+                onPress={() => navigation.push('PersonalEvents')}
+              >
+                <Text style={styles.linkText}>View All</Text>
+              </TouchableOpacity>
+        </View>
+
         <View style={styles.personalEventsContainer}>
-            <Text style={styles.headerText}>Campus Connects</Text>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false} 
@@ -339,11 +357,51 @@ const EventsScreenAlt = () => {
               {personalEvents.map((event) => (
                 <TouchableOpacity key={event.id} style={styles.eventCard}>
                 <Text style={styles.eventTitle}>{event.title}</Text>
-                <Text style={styles.eventLocation}>Location: {event.location || 'N/A'}</Text>
-                <Text style={styles.eventDate}>Date: {event.date || 'N/A'}</Text>
-                <Text style={styles.eventTime}>Starts: {event.startTime || 'N/A'} - Ends: {event.endTime || 'N/A'}</Text>
                 <Text style={styles.eventDescription} numberOfLines={3}>{event.description}</Text>
-                <Text style={styles.eventsStatus}>{event.isPublic ? "Public" : "Private"}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                        <Icon 
+                            name="map-pin"
+                            type="font-awesome" 
+                            size={13} 
+                            color="#808080" 
+                            style={{ marginRight: 5 }}
+                        />
+                        <Text style={styles.eventLocation} numberOfLines={1}>Location: {event.location || 'N/A'}</Text>
+                </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                        <Icon 
+                            name="clock-o"
+                            type="font-awesome" 
+                            size={14} 
+                            color="#808080"
+                            style={{ marginRight: 5 }}
+                        />
+                         <Text style={styles.eventDate}>
+                            {event.date || 'N/A'}, <Text style={styles.eventTime}>{event.startTime || 'N/A'} - {event.endTime || 'N/A'}</Text>
+                         </Text>
+
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                      <Text style={styles.eventsStatus}>{event.isPublic ? "Public" : "Private"}</Text>
+
+                      <TouchableOpacity
+                        style={styles.bookmarkContainer}
+                        onPress={() => toggleBookmark(event.id, event.isBookmarked)}
+                      >
+                        <View style={styles.iconCircle}>
+                          <Icon
+                            name={event.isBookmarked ? "bookmark" : "bookmark-o"} // Ensure correct icon based on isBookmarked
+                            size={24}
+                            color={event.isBookmarked ? "#0C5449" : "grey"} // Change color based on isBookmarked
+                          />
+                        </View>
+                      </TouchableOpacity>
+
+                    </View>
+                
+            
+        
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -539,6 +597,16 @@ headerContainer: {
   marginTop: -75, 
   marginBottom: 0,
 },
+headerContainer2:{
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'left',
+  marginLeft: 0,
+  marginHorizontal: 20,
+  marginTop: 30, 
+  marginBottom: -10,
+
+},
 bookmarkContainer:{
   marginLeft: 'auto',
 },
@@ -616,22 +684,27 @@ personalEventsContainer: {
 },
 personalEventsTitle: {
   fontSize: 18,
-  fontWeight: 'bold',
+  fontFamily: 'Montserrat_500Medium',
   color: '#0C5449',
   marginBottom: 10,
 },
 personalEventCard: {
-  backgroundColor: '#f9f9f9',
-  padding: 10,
-  marginRight: 10,
-  borderRadius: 5,
-  width: 150, 
+  width: width * 0.85,
+  height: 220,
+  marginRight: 15,
+  padding: 16,
+  backgroundColor: 'white',
+  borderRadius: 12,
 },
 eventDate: {
   fontSize: 14,
-  marginBottom: 6,
-  fontFamily: 'Montserrat_500Medium',
+  marginBottom: 0,
+  fontFamily: 'Montserrat_400Regular',
+  color: 'grey', 
 },
+eventsStatus:{
+  marginTop: 10,
+}
 });
 
 export default EventsScreenAlt;

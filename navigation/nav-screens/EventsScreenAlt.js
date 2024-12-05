@@ -363,7 +363,8 @@ const EventsScreenAlt = () => {
                             {new Date(event.startsOn).toLocaleString()}
                         </Text>
 
-                        <TouchableOpacity
+                    </View>
+                    <TouchableOpacity
                           style={styles.bookmarkContainer}
                           onPress={() => toggleBookmark(event.id, event.isBookmarked)}
                         >
@@ -375,7 +376,6 @@ const EventsScreenAlt = () => {
                             />
                           </View>
                       </TouchableOpacity>
-                    </View>
                     
                     
                 </TouchableOpacity>
@@ -413,7 +413,7 @@ const EventsScreenAlt = () => {
                             color="#808080" 
                             style={{ marginRight: 5 }}
                         />
-                        <Text style={styles.eventLocation} numberOfLines={1}>Location: {event.location || 'N/A'}</Text>
+                        <Text style={styles.eventLocation} numberOfLines={1}>{event.location || 'N/A'}</Text>
                 </View>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
@@ -436,7 +436,10 @@ const EventsScreenAlt = () => {
                       {event.isPublic ? "Public" : "Private"}
                     </Text>
 
-                      <TouchableOpacity
+                      
+
+                    </View>
+                    <TouchableOpacity
                         style={styles.bookmarkContainer}
                         onPress={() => toggleBookmark(event.id, event.isBookmarked)}
                       >
@@ -448,8 +451,6 @@ const EventsScreenAlt = () => {
                           />
                         </View>
                       </TouchableOpacity>
-
-                    </View>
                 
             
         
@@ -579,11 +580,11 @@ const EventsScreenAlt = () => {
             onPress={closePersonalEventDetails}
           >
             <Icon 
-                            name="close"
-                            type="font-awesome" 
-                            size={18} 
-                            color="#0C5449" 
-                        />
+                name="close"
+                type="font-awesome" 
+                size={18} 
+                color="#0C5449" 
+            />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.registerButton}
@@ -724,13 +725,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden', 
   },
   iconCircle2: {
-    width: 30,  // Set the size of the circle
-    height: 30, // Set the size of the circle
-    borderRadius: 15,  // Make it circular
-    backgroundColor: '#daedd6', // Circle color (change to your preference)
-    alignItems: 'center', // Center icon horizontally
-    justifyContent: 'center', // Center icon vertically
-    marginRight: 8, // Add space between the icon and the text
+    width: 30,  
+    height: 30, 
+    borderRadius: 15, 
+    backgroundColor: '#daedd6', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    marginRight: 8, 
 
   },
   headerText: {
@@ -770,8 +771,17 @@ headerContainer2:{
   marginBottom: -10,
 
 },
-bookmarkContainer:{
-  marginLeft: 'auto',
+bookmarkContainer: {
+  position: 'absolute', 
+  bottom: 10, 
+  right: 10,   
+  backgroundColor: 'white',
+  borderRadius: 50,
+  width: 40, 
+  height: 40, 
+  justifyContent: 'center', 
+  alignItems: 'center', 
+  elevation: 2,
 },
 loadingContainer: {
   flex: 1,
@@ -824,7 +834,7 @@ baseModalText: {
 modalDescription: {
   fontSize: 14,
   marginTop: 5,
-  fontFamily: 'Monterrat_400Regular',
+  fontFamily: 'Montserrat_400Regular',
 },
 closeButton: {
   position: 'absolute',

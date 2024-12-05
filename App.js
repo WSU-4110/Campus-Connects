@@ -11,6 +11,7 @@ import EventsScreen from './navigation/nav-screens/EventsScreen';
 import OnboardScreen from './screens/OnboardScreen';
 import PersonalEventsScreen from './navigation/nav-screens/PersonalEventsScreen';
 import CreateEventScreen from './navigation/nav-screens/CreateEventScreen';
+import BookmarksScreen from './navigation/nav-screens/BookmarksScreen'; 
 
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -78,6 +79,11 @@ export default function App() {
         <Stack.Screen name="Events" component={EventsScreen} />
         <Stack.Screen name="PersonalEvents" component={PersonalEventsScreen} />
         <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
+        <Stack.Screen 
+        name="Bookmarks" 
+        component={BookmarksScreen} 
+        options={{ title: 'Bookmarks' }} 
+/>
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>

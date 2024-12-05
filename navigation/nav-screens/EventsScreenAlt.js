@@ -60,6 +60,9 @@ const EventsScreenAlt = () => {
   });
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [personalEventModalVisible, setPersonalEventModalVisible] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false); 
+
 
   // Functions from EventsScreen.js
   const fetchUserBookmarks = async () => {
@@ -164,6 +167,50 @@ const EventsScreenAlt = () => {
   const closeEventDetails = () => {
     setModalVisible(false);
     setSelectedEvent(null);
+  };
+
+  const openPersonalEventDetails = (event) => {
+    setSelectedEvent(event);
+    setPersonalEventModalVisible(true);
+  };
+  
+  // New function to close personal events modal
+  const closePersonalEventDetails = () => {
+    setPersonalEventModalVisible(false);
+    setSelectedEvent(null);
+  };
+
+  const registerForEvent = async (eventId) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return Alert.alert("You need to be logged in to register for events.");
+  
+    try {
+      const eventRef = doc(db, 'events', eventId);
+      const eventSnap = await getDoc(eventRef);
+  
+      if (eventSnap.exists()) {
+        const eventData = eventSnap.data();
+        const attendees = eventData.attendees || [];
+  
+        // Check if the user is already registered
+        if (attendees.includes(userId)) {
+          Alert.alert("You are already registered for this event.");
+          setIsRegistered(true); // Update the registration status
+          return;
+        }
+  
+        // Add user to the attendees array
+        await updateDoc(eventRef, { attendees: arrayUnion(userId) });
+        setIsRegistered(true); // Update the state after successful registration
+        Alert.alert("Successfully registered for the event!");
+        fetchEvents(); // Refresh events data
+      } else {
+        Alert.alert("Event not found.");
+      }
+    } catch (error) {
+      console.error("Error registering for event:", error);
+      Alert.alert("Failed to register for the event.");
+    }
   };
 
 // Fetching personal events
@@ -324,7 +371,7 @@ const EventsScreenAlt = () => {
                             <Icon
                               name={event.isBookmarked ? "bookmark" : "bookmark-o"}
                               size={24}
-                              color={event.isBookmarked ? "#0C5449" : "grey"}
+                              color={event.isBookmarked ? "#0C5449" : "#0C5449"}
                             />
                           </View>
                       </TouchableOpacity>
@@ -355,7 +402,7 @@ const EventsScreenAlt = () => {
               contentContainerStyle={styles.eventsScrollContent}
             >
               {personalEvents.map((event) => (
-                <TouchableOpacity key={event.id} style={styles.eventCard}>
+                <TouchableOpacity key={event.id} style={styles.eventCard} onPress={() => openPersonalEventDetails(event)}>
                 <Text style={styles.eventTitle}>{event.title}</Text>
                 <Text style={styles.eventDescription} numberOfLines={3}>{event.description}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
@@ -383,7 +430,11 @@ const EventsScreenAlt = () => {
 
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
-                      <Text style={styles.eventsStatus}>{event.isPublic ? "Public" : "Private"}</Text>
+                    <Text 
+                      style={event.isPublic ? styles.publicText : styles.privateText}
+                    >
+                      {event.isPublic ? "Public" : "Private"}
+                    </Text>
 
                       <TouchableOpacity
                         style={styles.bookmarkContainer}
@@ -391,9 +442,9 @@ const EventsScreenAlt = () => {
                       >
                         <View style={styles.iconCircle}>
                           <Icon
-                            name={event.isBookmarked ? "bookmark" : "bookmark-o"} // Ensure correct icon based on isBookmarked
+                            name={event.isBookmarked ? "bookmark" : "bookmark-o"} 
                             size={24}
-                            color={event.isBookmarked ? "#0C5449" : "grey"} // Change color based on isBookmarked
+                            color={event.isBookmarked ? "#0C5449" : "#0C5449"} 
                           />
                         </View>
                       </TouchableOpacity>
@@ -410,7 +461,7 @@ const EventsScreenAlt = () => {
 
         {/* Modal for event details */}
       <Modal
-        animationType="slide"
+      
         transparent={true}
         visible={modalVisible}
         onRequestClose={closeEventDetails}
@@ -421,8 +472,8 @@ const EventsScreenAlt = () => {
               {selectedEvent && (
                 <View>
                   <Text style={styles.modalTitle}>{selectedEvent.name}</Text>
-                  <Text style={styles.modalLocation}>Location: {selectedEvent.location}</Text>
-                  <Text style={styles.modalTime}>
+                  <Text style={styles.baseModalText}>Location: {selectedEvent.location}</Text>
+                  <Text style={styles.baseModalText}>
                     Starts: {new Date(selectedEvent.startsOn).toLocaleString()}
                   </Text>
                   <Text style={styles.modalDescription}>
@@ -435,13 +486,115 @@ const EventsScreenAlt = () => {
               style={styles.closeButton}
               onPress={closeEventDetails}
             >
-              <Text style={styles.closeButtonText}>Close</Text>
+              <Icon 
+                            name="close"
+                            type="font-awesome" 
+                            size={18} 
+                            color="#0C5449" 
+                        />
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+      
+      {/* Campus connects events modal */}
+      <Modal
+
+      transparent={true}
+      visible={personalEventModalVisible}
+      onRequestClose={closePersonalEventDetails}
+    >
+      <View style={styles.centeredView}>
+        <View style={styles.modalView}>
+          <ScrollView 
+            contentContainerStyle={styles.modalContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {selectedEvent ? (
+              <View>
+                <Text style={styles.modalTitle}>
+                  {selectedEvent.title || 'Untitled Event'}
+                </Text>
+                <Text style={styles.baseModalText}>
+                  Location: {selectedEvent.location || 'N/A'}
+                </Text>
+                <Text style={styles.baseModalText}>
+                  Date: {selectedEvent.date || 'N/A'}
+                </Text>
+                <Text style={styles.baseModalText}>
+                  Starts: {selectedEvent.startTime || 'N/A'}, 
+                  Ends: {selectedEvent.endTime || 'N/A'}
+                </Text>
+                <Text style={styles.modalDescription}>
+                  {selectedEvent.description || 'No description available'}
+                </Text>
+
+                <View style={styles.statusAndTagsContainer}>
+                  <Text 
+                    style={
+                      selectedEvent.isPublic 
+                        ? styles.publicText 
+                        : styles.privateText
+                    }
+                  >
+                    {selectedEvent.isPublic ? "PUBLIC" : "PRIVATE"}
+                  </Text>
+
+                  {selectedEvent.tags && selectedEvent.tags.length > 0 && (
+                    <View style={styles.tagsContainer}>
+                      {selectedEvent.tags.map((tag, index) => (
+                        <Text key={index} style={styles.tag}>
+                          {tag.toUpperCase()}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.modalHeadcount}>
+                  <View style={styles.headcountRow}>
+                    <View style={styles.iconCircle2}>
+                    <Icon 
+                            name="users"
+                            type="font-awesome" 
+                            size={18} 
+                            color="#0C5449" 
+                        />
+                    </View>
+                    <Text style={styles.baseModalText}>
+                      {selectedEvent.attendees && selectedEvent.attendees.length > 0
+                        ? `${selectedEvent.attendees.length} student${selectedEvent.attendees.length > 1 ? 's' : ''} going`
+                        : 'No students going'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.modalTitle}>No Event Selected</Text>
+            )}
+          </ScrollView>
+
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={closePersonalEventDetails}
+          >
+            <Icon 
+                            name="close"
+                            type="font-awesome" 
+                            size={18} 
+                            color="#0C5449" 
+                        />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.registerButton}
+            onPress={() => registerForEvent(selectedEvent.id)}
+          >
+            <Text style={styles.registerButtonText}>Register</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    
+    </Modal>
+    </View>
   );
 };
 
@@ -570,6 +723,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden', 
   },
+  iconCircle2: {
+    width: 30,  // Set the size of the circle
+    height: 30, // Set the size of the circle
+    borderRadius: 15,  // Make it circular
+    backgroundColor: '#daedd6', // Circle color (change to your preference)
+    alignItems: 'center', // Center icon horizontally
+    justifyContent: 'center', // Center icon vertically
+    marginRight: 8, // Add space between the icon and the text
+
+  },
   headerText: {
     fontSize: 18,
     fontFamily: 'Montserrat_600SemiBold',
@@ -653,31 +816,27 @@ modalTitle: {
   marginBottom: 5,
   color: '#0C5449',
 },
-modalLocation: {
-  fontSize: 14,
-  marginBottom: 5,
-  fontFamily: 'Montserrat_500Medium',
-},
-modalTime: {
+baseModalText: {
   fontSize: 14,
   marginBottom: 5,
   fontFamily: 'Montserrat_500Medium',
 },
 modalDescription: {
   fontSize: 14,
-  marginTop: 5
+  marginTop: 5,
+  fontFamily: 'Monterrat_400Regular',
 },
 closeButton: {
-  backgroundColor: '#0C5449',
-  borderRadius: 10,
-  padding: 8,
+  position: 'absolute',
+  top: 10,
+  right: 10,
+  backgroundColor: 'white',
+  borderRadius: 50,
+  width: 40, 
+  height: 40, 
+  justifyContent: 'center', 
+  alignItems: 'center', 
   elevation: 2,
-  marginTop: 10, 
-},
-closeButtonText: {
-  color: 'white',
-  fontWeight: 'bold',
-  textAlign: 'center',
 },
 personalEventsContainer: {
   marginTop: 20,
@@ -704,7 +863,66 @@ eventDate: {
 },
 eventsStatus:{
   marginTop: 10,
-}
+},
+statusAndTagsContainer: {
+  flexDirection: 'row', 
+  alignItems: 'center', 
+  marginTop: 10,
+},
+tagsContainer: {
+  flexDirection: 'row', 
+  flexWrap: 'wrap', 
+  marginLeft: 10, 
+  
+},
+tag: {
+  backgroundColor: '#acdfec',
+  fontFamily: 'Montserrat_500Medium',
+  paddingHorizontal: 10,
+  paddingVertical: 5,
+  borderRadius: 10,
+  marginRight: 5,
+  fontSize: 14,
+},
+privateText: {
+  color: 'black',           
+  fontFamily: 'Montserrat_500Medium',
+  backgroundColor: '#c3e4f5', 
+  paddingHorizontal: 8,     
+  paddingVertical: 4,        
+  borderRadius: 20,           
+  textAlign: 'center',        
+  maxWidth: 90,              
+},
+publicText: {
+  color: 'black',           
+  fontFamily: 'Montserrat_500Medium',
+  backgroundColor: '#fcd5df',     
+  paddingHorizontal: 8,      
+  paddingVertical: 4,       
+  borderRadius: 20,        
+  textAlign: 'center',    
+  maxWidth: 90,         
+},
+headcountRow: {
+  marginTop: 15,
+  marginLeft: 5,
+  flexDirection: 'row',  
+  alignItems: 'center',      
+  justifyContent: 'flex-start', 
+},
+registerButton: {
+  backgroundColor: '#3b64a9',
+  borderRadius: 10,
+  padding: 8,
+  elevation: 2,
+  marginTop: 0,
+},
+registerButtonText: {
+  color: 'white',
+  fontFamily: 'Montserrat_600Semibold',
+  textAlign: 'center',
+},
 });
 
 export default EventsScreenAlt;

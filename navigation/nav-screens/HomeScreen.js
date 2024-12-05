@@ -44,14 +44,97 @@ const WSU_REGION = {
   longitudeDelta: Math.abs(WSU_BOUNDARIES[0].longitude - WSU_BOUNDARIES[1].longitude) * 1.5 * ASPECT_RATIO,
 };
 
+const WSU_BUILDINGS = [
+  {
+    name: "State Hall",
+    location: { lat: 42.355639, lng: -83.067833 },
+    type: "Academic"
+  },
+  {
+    name: "Undergraduate Library",
+    location: { lat: 42.356972, lng: -83.070833 },
+    type: "Academic"
+  },
+  {
+    name: "Student Center",
+    location: { lat: 42.355833, lng: -83.069833 },
+    type: "Academic"
+  },
+  {
+    name: "Manoogian Hall",
+    location: { lat: 42.356833, lng: -83.068639 },
+    type: "Academic"
+  },
+  {
+    name: "Engineering Building",
+    location: { lat: 42.358056, lng: -83.069944 },
+    type: "Academic"
+  },
+  {
+    name: "Science Hall",
+    location: { lat: 42.356389, lng: -83.069556 },
+    type: "Academic"
+  },
+  {
+    name: "Law School",
+    location: { lat: 42.356639, lng: -83.068778 },
+    type: "Academic"
+  }
+];
+
+const WSU_PARKING = [
+  {
+    name: "Structure 1",
+    location: { lat: 42.355750, lng: -83.066361 },
+    type: "Parking",
+    description: "Palmer Structure"
+  },
+  {
+    name: "Structure 2",
+    location: { lat: 42.357222, lng: -83.069833 },
+    type: "Parking",
+    description: "Manoogian Structure"
+  },
+  {
+    name: "Structure 3",
+    location: { lat: 42.354972, lng: -83.069722 },
+    type: "Parking",
+    description: "Parking Structure 3"
+  },
+  {
+    name: "Structure 4",
+    location: { lat: 42.356889, lng: -83.071833 },
+    type: "Parking",
+    description: "Anthony Wayne Drive Structure"
+  },
+  {
+    name: "Structure 5",
+    location: { lat: 42.358556, lng: -83.070722 },
+    type: "Parking",
+    description: "Engineering Structure"
+  },
+  {
+    name: "Structure 6",
+    location: { lat: 42.360278, lng: -83.074778 },
+    type: "Parking",
+    description: "Medical School Structure"
+  },
+  {
+    name: "Structure 7",
+    location: { lat: 42.353889, lng: -83.060833 },
+    type: "Parking",
+    description: "John R Structure"
+  },
+  {
+    name: "Structure 8",
+    location: { lat: 42.356944, lng: -83.075278 },
+    type: "Parking",
+    description: "Lodge Service Drive Structure"
+  }
+];
+
 const HomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [region, setRegion] = useState({
-    latitude: 42.357341,
-    longitude: -83.069711,
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
-  });
   const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -65,13 +148,19 @@ const HomeScreen = () => {
   const [routeSteps, setRouteSteps] = useState([]);
   const [showDirections, setShowDirections] = useState(false);
   const [routeMarkers, setRouteMarkers] = useState([]);
+  const [isFollowingUser, setIsFollowingUser] = useState(false);
 
   const ACCURACY_THRESHOLD = 20; // meters
 
   const fetchAutocomplete = async (input) => {
     try {
+      if (!location || !location.coords) {
+        console.log('Location not available yet');
+        return;
+      }
+
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&location=${region.latitude},${region.longitude}&radius=2000&key=${GOOGLE_MAPS_API_KEY}`
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&location=${location.coords.latitude},${location.coords.longitude}&radius=2000&key=${GOOGLE_MAPS_API_KEY}`
       );
       const data = await response.json();
       if (data.status === 'OK') {
@@ -99,7 +188,7 @@ const HomeScreen = () => {
 
   const fetchPlaces = async (query = '', filterType = null) => {
     try {
-      let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${region.latitude},${region.longitude}&radius=2000&key=${GOOGLE_MAPS_API_KEY}`;
+      let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${location.coords.latitude},${location.coords.longitude}&radius=2000&key=${GOOGLE_MAPS_API_KEY}`;
       
       if (filterType) {
         url += `&type=${filterType}`;
@@ -160,38 +249,22 @@ const HomeScreen = () => {
         return;
       }
 
-      // Get initial location with high accuracy
       let currentLocation = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
-        maximumAge: 10000, // Only accept locations less than 10 seconds old
+        maximumAge: 10000,
       });
+
       setLocation(currentLocation);
 
-      // Set up real-time location tracking with better settings
       const subscription = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
-          timeInterval: 1000,    // Update every second
-          distanceInterval: 5,   // Update every 5 meters
-          mayShowUserSettingsDialog: true, // Prompt user to improve location settings if needed
+          timeInterval: 5000,
+          distanceInterval: 10,
         },
         (newLocation) => {
-          // Only update location if accuracy is good enough
           if (newLocation.coords.accuracy <= ACCURACY_THRESHOLD) {
-            // Simple movement smoothing
-            setLocation(prevLocation => {
-              if (!prevLocation) return newLocation;
-              
-              // Smooth out the transition
-              return {
-                ...newLocation,
-                coords: {
-                  ...newLocation.coords,
-                  latitude: (prevLocation.coords.latitude + newLocation.coords.latitude) / 2,
-                  longitude: (prevLocation.coords.longitude + newLocation.coords.longitude) / 2,
-                }
-              };
-            });
+            setLocation(newLocation);
           }
         }
       );
@@ -212,11 +285,6 @@ const HomeScreen = () => {
       if (placeDetails) {
         setSelectedPlace(placeDetails);
         setModalVisible(true);
-        setRegion({
-          ...region,
-          latitude: placeDetails.geometry.location.lat,
-          longitude: placeDetails.geometry.location.lng,
-        });
         setPlaces([placeDetails]);
       }
     } else {
@@ -237,7 +305,43 @@ const HomeScreen = () => {
 
   const handleFilterPress = (filterId) => {
     setActiveFilter(activeFilter === filterId ? null : filterId);
-    fetchPlaces('', activeFilter === filterId ? null : filterId);
+    
+    if (filterId === 'school') {
+      // Show Wayne State buildings
+      const academicBuildings = WSU_BUILDINGS.map(building => ({
+        geometry: {
+          location: {
+            lat: building.location.lat,
+            lng: building.location.lng
+          }
+        },
+        name: building.name,
+        formatted_address: "Wayne State University",
+        types: [building.type]
+      }));
+      
+      setPlaces(academicBuildings);
+      setModalVisible(false);
+    } else if (filterId === 'parking') {
+      // Show Wayne State parking structures
+      const parkingStructures = WSU_PARKING.map(parking => ({
+        geometry: {
+          location: {
+            lat: parking.location.lat,
+            lng: parking.location.lng
+          }
+        },
+        name: parking.name,
+        formatted_address: parking.description,
+        types: [parking.type]
+      }));
+      
+      setPlaces(parkingStructures);
+      setModalVisible(false);
+    } else {
+      // Original behavior for other filters
+      fetchPlaces('', activeFilter === filterId ? null : filterId);
+    }
   };
 
   const fetchDirections = async (startLat, startLng, destLat, destLng) => {
@@ -249,23 +353,30 @@ const HomeScreen = () => {
       
       if (data.status === 'OK' && data.routes.length > 0) {
         const points = decodePolyline(data.routes[0].overview_polyline.points);
+        
+        if (!points || points.length === 0) {
+          Alert.alert('Error', 'Could not calculate route');
+          return;
+        }
+
         setRoute(points);
         setRouteSteps(data.routes[0].legs[0].steps);
         setShowDirections(true);
         
-        // Create markers for each turn point
         const markers = createRouteMarkers(data.routes[0].legs[0].steps);
         setRouteMarkers(markers);
-        
-        const coordinates = points.map(point => ({
-          latitude: point.latitude,
-          longitude: point.longitude,
-        }));
-        
-        mapRef.current.fitToCoordinates(coordinates, {
-          edgePadding: { top: 100, right: 100, bottom: 100, left: 100 },
-          animated: true,
-        });
+
+        // Set specific zoom level and center on current location
+        if (mapRef.current) {
+          mapRef.current.animateToRegion({
+            latitude: startLat,
+            longitude: startLng,
+            latitudeDelta: 0.02,  // This approximates zoom level 14
+            longitudeDelta: 0.02,
+          }, 500);  // 500ms animation duration
+        }
+      } else {
+        Alert.alert('Error', 'Could not find a route to this location');
       }
     } catch (error) {
       console.error('Error fetching directions:', error);
@@ -395,13 +506,17 @@ const HomeScreen = () => {
       <MapView
         ref={mapRef}
         style={styles.map}
-        initialRegion={region}
-        onRegionChangeComplete={setRegion}
-        minZoomLevel={14}
-        maxZoomLevel={18}
+        initialRegion={{
+          latitude: 42.357341,
+          longitude: -83.069711,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }}
         showsUserLocation={true}
-        followsUserLocation={true}
+        followsUserLocation={false}
         showsMyLocationButton={true}
+        onPanDrag={() => setIsFollowingUser(false)}
+        onPress={() => setIsFollowingUser(false)}
       >
         <Polygon
           coordinates={WSU_BOUNDARIES}

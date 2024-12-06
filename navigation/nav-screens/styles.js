@@ -2,7 +2,6 @@ import { StyleSheet, Dimensions } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
-// Color palette 
 export const COLORS = {
   primary: '#0C5449',
   secondary: '#808080',
@@ -14,7 +13,6 @@ export const COLORS = {
   private: '#8B0000',
 };
 
-// Typography
 export const FONTS = {
   regular: 'Montserrat_400Regular',
   medium: 'Montserrat_500Medium',

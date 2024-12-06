@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Modal, ScrollView, Alert, Image } from 'react-native';
 import { db, auth } from '../../firebase';
 import { collection, getDocs, doc, deleteDoc, updateDoc, arrayUnion, arrayRemove, setDoc, getDoc } from 'firebase/firestore';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -175,46 +175,90 @@ const PersonalEventsScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Events</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('CreateEvent')}>
+        <Text style={styles.title}>Campus Connects Events</Text>
+        {/* <TouchableOpacity onPress={() => navigation.navigate('CreateEvent')}>
           <Text style={styles.link}>Create New Event</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
-      
+  
       <FlatList
-       data={eventsData}
+        data={eventsData}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-    <View style={styles.eventCard}>
-      {/* Separate TouchableOpacity for the bookmark button */}
-      <TouchableOpacity
-        style={styles.bookmarkContainer}
-        onPress={() => toggleBookmark(item.id, item.isBookmarked)}
-      >
-        <View style={styles.iconCircle}> 
-          <FontAwesome
-            name={item.isBookmarked ? "bookmark" : "bookmark-o"}
-            size={24}
-            color={item.isBookmarked ? "#135119" : "green"}
-          />
+          <TouchableOpacity
+            key={item.id}
+            style={styles.eventCard}
+            onPress={() => openEventDetails(item)}
+            activeOpacity={0.5}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={styles.eventTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        
+        {/* Headcount */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Image 
+        source={require('../../assets/headcount.png')} 
+         style={{ width: 20, height: 20, marginRight: 5 }} 
+        resizeMode="contain" 
+        />
+          <Text style={styles.headcount}>
+            {item.attendees && item.attendees.length > 0
+              ? item.attendees.length
+              : 0}
+          </Text>
         </View>
-      </TouchableOpacity>
-
-      {/* Separate TouchableOpacity for opening event details */}
-      <TouchableOpacity style={styles.eventDetails} onPress={() => openEventDetails(item)}>
-        <Text style={styles.eventTitle}>{item.title}</Text>
-        <Text style={styles.eventLocation}>Location: {item.location || 'N/A'}</Text>
-        <Text style={styles.eventDate}>Date: {item.date || 'N/A'}</Text>
-        <Text style={styles.eventTime}>Starts: {item.startTime || 'N/A'} - Ends: {item.endTime || 'N/A'}</Text>
-        <Text style={styles.eventDescription} numberOfLines={3}>{item.description}</Text>
-        <Text style={styles.eventsStatus}>{item.isPublic ? "Public" : "Private"}</Text>
-       
-      </TouchableOpacity>
-    </View>
-  )}
-/>
-
-<Modal
+      </View>
+            
+            <Text style={styles.eventDescription} numberOfLines={4}>{item.description}</Text>
+  
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+              <FontAwesome 
+                name="map-pin"
+                size={13}
+                color="#c21c31"
+                style={{ marginRight: 5 }}
+              />
+              <Text style={styles.eventLocation} numberOfLines={1}>
+                {item.location || 'N/A'}
+              </Text>
+            </View>
+  
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+              <FontAwesome
+                name="clock-o"
+                size={14}
+                color="black"
+                style={{ marginRight: 5 }}
+              />
+              <Text style={styles.eventTime}>
+  {item.date || 'Invalid Date'}, {item.startTime || 'Invalid Time'} - {item.endTime || 'Invalid Time'}
+</Text>
+  
+              {/* Circular Bookmark Icon */}
+          <TouchableOpacity
+            style={styles.bookmarkContainer}
+            onPress={() => toggleBookmark(item.id, item.isBookmarked)}
+          >
+            <View style={styles.iconCircle}>
+              <FontAwesome
+                name={item.isBookmarked ? "bookmark" : "bookmark-o"}
+                size={24}
+                color={item.isBookmarked ? "#0C5449" : "grey"}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+  
+            <Text style={styles.eventsStatus}>
+              {item.isPublic ? "Public" : "Private"}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
+  
+  <Modal
   animationType="slide"
   transparent={true}
   visible={modalVisible}
@@ -226,18 +270,49 @@ const PersonalEventsScreen = () => {
         {selectedEvent && (
           <View>
             <Text style={styles.modalTitle}>{selectedEvent.title}</Text>
-            <Text style={styles.modalLocation}>Location: {selectedEvent.location || 'N/A'}</Text>
-            <Text style={styles.modalDate}>Date: {selectedEvent.date || 'N/A'}</Text>
-            <Text style={styles.modalTime}>Starts: {selectedEvent.startTime || 'N/A'}, Ends: {selectedEvent.endTime || 'N/A'}</Text>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5 }}>
+  <FontAwesome 
+    name="map-pin"
+    size={13}
+    color="#c21c31"
+    style={{ marginRight: 5 }}
+  />
+  <TouchableOpacity
+    onPress={() => {
+      if (selectedEvent?.location) {
+        navigation.navigate('MapScreen', { location: selectedEvent.location });
+      } else {
+        Alert.alert("Location not available");
+      }
+    }}
+  >
+    <Text style={styles.eventLocationClickable}>
+      {selectedEvent.location || 'N/A'}
+    </Text>
+  </TouchableOpacity>
+</View>
+
+<View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5 }}>
+  <FontAwesome
+    name="clock-o"
+    size={14}
+    color="black"
+    style={{ marginRight: 5 }}
+  />
+  <Text style={styles.modalDate}>
+     {selectedEvent.date || 'N/A'}
+  </Text>
+</View>
+            <Text style={styles.modalTime}>
+              Starts: {selectedEvent.startTime || 'N/A'}, Ends: {selectedEvent.endTime || 'N/A'}
+            </Text>
             <Text style={styles.modalDescription}>{selectedEvent.description}</Text>
 
-            {/* Status and tags container */}
             <View style={styles.statusAndTagsContainer}>
               <Text style={selectedEvent.isPublic ? styles.publicText : styles.privateText}>
                 {selectedEvent.isPublic ? "PUBLIC" : "PRIVATE"}
               </Text>
-
-              {/* Display tags beside the Public/Private label */}
               {selectedEvent.tags && selectedEvent.tags.length > 0 && (
                 <View style={styles.tagsContainer}>
                   {selectedEvent.tags.map((tag, index) => (
@@ -248,30 +323,25 @@ const PersonalEventsScreen = () => {
                 </View>
               )}
             </View>
-            {/* Headcount section */}
-           {/* Headcount section */}
-<View style={styles.modalHeadcount}>
-  <View style={styles.headcountRow}>
-    <View style={styles.iconCircle2}>
-      <FontAwesome
-        name="user" // FontAwesome icon for a human head
-        size={18}    // Adjust size as needed
-        color="#0C5449" // Icon color (adjust as needed)
-        style={styles.headIcon}
-      />
-    </View>
-    <Text style={styles.headcountText}>
-      {selectedEvent.attendees && selectedEvent.attendees.length > 0
-        ? `${selectedEvent.attendees.length} student${selectedEvent.attendees.length > 1 ? 's' : ''} going`
-        : 'No students going'}
-    </Text>
-  </View>
-</View>
+
+            <View style={styles.modalHeadcount}>
+              <View style={styles.headcountRow}>
+                <Image 
+                  source={require('../../assets/headcount.png')} 
+                  style={{ width: 20, height: 20, marginRight: 5 }} 
+                  resizeMode="contain" 
+                />
+                <Text style={styles.headcountText}>
+                  {selectedEvent.attendees && selectedEvent.attendees.length > 0
+                    ? `${selectedEvent.attendees.length} student${selectedEvent.attendees.length > 1 ? 's' : ''} going`
+                    : 'No students going'}
+                </Text>
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
 
-      {/* Register Button */}
       <TouchableOpacity
         style={styles.registerButton}
         onPress={() => registerForEvent(selectedEvent.id)}
@@ -279,15 +349,13 @@ const PersonalEventsScreen = () => {
         <Text style={styles.registerButtonText}>Register</Text>
       </TouchableOpacity>
 
-      {/* Close Button - Cross Icon at Top Right */}
       <TouchableOpacity style={styles.closeButton} onPress={closeEventDetails}>
         <FontAwesome name="times" size={20} color="#0C5449" />
       </TouchableOpacity>
 
-      {/* Delete Button - Move to Bottom Right */}
       {selectedEvent && selectedEvent.createdBy === auth.currentUser?.uid && (
         <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteEvent}>
-          <FontAwesome name="trash" size={24} color="white" /> {/* Trash icon */}
+          <FontAwesome name="trash" size={24} color="white" />
         </TouchableOpacity>
       )}
     </View>
@@ -295,13 +363,12 @@ const PersonalEventsScreen = () => {
 </Modal>
     </View>
   );
-};
-
+}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#fff', // background color for events page
+    backgroundColor: '#E6E5E7', // background color for events page
   },
   header: {
     flexDirection: 'row',
@@ -311,12 +378,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: 'Montserrat_600SemiBold',
     color: '#0C5449',
     
   },
   link: {
     color: '#0C5449',
+    fontFamily: 'Montserrat_600SemiBold',
     fontSize: 16,
   },
   eventCard: {
@@ -324,9 +392,9 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     elevation: 3,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
+    //borderWidth: 1,
+    //borderColor: '#ccc',
+    borderRadius: 10,
   },
   eventTitle: {
     fontSize: 18,
@@ -375,9 +443,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   modalDate: {
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 6, // Uniform margin
-    fontWeight: 'bold',
+    fontWeight: 'normal',
   },
   modalDescription: {
     fontSize: 16,
@@ -419,7 +487,7 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     top: 23,
-    left: 80,
+    left: 10,
     backgroundColor: '#3b64a9',
     borderRadius: 10,
     padding: 8,
@@ -443,9 +511,9 @@ const styles = StyleSheet.create({
   },
   modalView: {
     margin: 20,
-    backgroundColor: 'white',
+    backgroundColor: '#f0f4f0',
     borderRadius: 20,
-    padding: 35,
+    padding: 26,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
@@ -464,6 +532,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     paddingBottom: 20,
+  
   },
   bookmarkText: {
     color: '#0C5449',
@@ -474,7 +543,7 @@ const styles = StyleSheet.create({
     width: 40,  // Set the size of the circle
     height: 40, // Set the size of the circle
     borderRadius: 20,  // Make it circular
-    backgroundColor: '#e0fae2', // Circle color (change to your preference)
+    backgroundColor: 'white', // Circle color (change to your preference)
     alignItems: 'center', // Center icon horizontally
     justifyContent: 'center', // Center icon vertically
     overflow: 'hidden',  // Ensures the icon fits inside the circle
@@ -529,16 +598,19 @@ const styles = StyleSheet.create({
       borderWidth: 1, // Border thickness around the icon
       borderColor: '#0C5449', // Color of the outline around the icon
     },
+    //fixed the gap issues 
     statusAndTagsContainer: {
-      flexDirection: 'row', // Align Public/Private text and tags horizontally
-      alignItems: 'center', // Ensure both elements are vertically aligned
+      flexDirection: 'row',  // Align Public/Private text and tags horizontally
+      alignItems: 'center',  // Ensure both elements are vertically aligned
       marginTop: 10,
+      justifyContent: 'space-between',  // This will ensure that there's an equal space between elements
+      width: '100%',  // Ensure that the container takes the full width of the modal
     },
     tagsContainer: {
-      flexDirection: 'row', // Tags will be displayed in a row
-      flexWrap: 'wrap', // Wrap tags if there's not enough space
-      marginLeft: 10, // Adds spacing between Public/Private and tags
-      
+      flexDirection: 'row',  // Tags will be displayed in a row
+      flexWrap: 'wrap',  // Wrap tags if there's not enough space
+      marginLeft: 10,  // Adds spacing between Public/Private and tags
+      flexGrow: 1,  // Ensures tags container fills remaining space
     },
     tag: {
       backgroundColor: '#acdfec',

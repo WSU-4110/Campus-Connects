@@ -776,7 +776,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     position: 'absolute',
-    top: 20,
+    top: 80,
     left: 10,
     right: 10,
     flexDirection: 'row',
@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     position: 'absolute',
-    top: 80,
+    top: 140,
     left: 10,
     right: 10,
     zIndex: 1,

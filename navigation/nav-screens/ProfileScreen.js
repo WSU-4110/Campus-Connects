@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 133,  
     height: 40,  // Height of the button
-    left: 130,  // Horizontal position
+    left: 105,
     top: 630,  // Vertical position
     backgroundColor: '#8CAE82',  // Background color for the button
     borderRadius: 16,  // Rounded corners with 15px radius

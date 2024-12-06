@@ -240,29 +240,30 @@ const EventsScreenAlt = () => {
     }
   };
 
+   //this was changed for the homeScreenalt to work after signing up
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true); 
+    const loadInitialData = async () => {
+      setLoading(true); // Ensure you set loading to true only once
       await fetchUserBookmarks(); 
       await fetchEventsData();  
       await fetchPersonalEvents(); 
       setLoading(false); 
     };
   
-    if (userBookmarks.length === 0) {  
-      loadData();
+    if (!userBookmarks.length) { // Only load data if bookmarks are not already fetched
+      loadInitialData();
     }
-  }, [userBookmarks]);  
+  }, []); // Empty dependency array ensures this runs only once
   
   useFocusEffect(
     React.useCallback(() => {
-      if (!userBookmarks.length) {  // Avoid re-fetching if already fetched
+      if (!userBookmarks.length) {
         fetchUserBookmarks().then(() => {
           fetchEventsData();
           fetchPersonalEvents();
         });
       }
-    }, [userBookmarks])  
+    }, []) // Remove userBookmarks from dependencies to prevent re-fetching
   );
 
   if (loading) { // Loading indicator

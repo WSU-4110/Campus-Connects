@@ -15,6 +15,8 @@ import BookmarksScreen from './navigation/nav-screens/BookmarksScreen';
 import EventsScreenAlt from './navigation/nav-screens/EventsScreenAlt';
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import MapScreen from './navigation/nav-screens/HomeScreen'; // Import MapScreen
+
 
 import { useFonts } from 'expo-font';
 import { Montserrat_400Regular, Montserrat_700Bold } from '@expo-google-fonts/montserrat';
@@ -111,9 +113,13 @@ export default function App() {
         }}  
         
         />
+          
         <Stack.Screen name="EventsScreenAlt" component={EventsScreenAlt}
         options={{headerShown: false}} 
         /> 
+        <Stack.Screen name="MapScreen" component={MapScreen} />
+          
+          
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>

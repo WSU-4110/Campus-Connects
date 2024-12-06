@@ -12,7 +12,7 @@ import OnboardScreen from './screens/OnboardScreen';
 import PersonalEventsScreen from './navigation/nav-screens/PersonalEventsScreen';
 import CreateEventScreen from './navigation/nav-screens/CreateEventScreen';
 import BookmarksScreen from './navigation/nav-screens/BookmarksScreen'; 
-
+import EventsScreenAlt from './navigation/nav-screens/EventsScreenAlt';
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -76,14 +76,44 @@ export default function App() {
           name="Onboard"
           component={OnboardScreen}
         />
-        <Stack.Screen name="Events" component={EventsScreen} />
-        <Stack.Screen name="PersonalEvents" component={PersonalEventsScreen} />
-        <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
+        <Stack.Screen name="Events" component={EventsScreen} 
+        options={{
+          headerTintColor: '#0C5449', 
+          title: '', 
+          headerStyle: { backgroundColor: '#E6E5E7' },
+          headerBackTitle: 'Back',
+        }}  
+        />
+        <Stack.Screen name="PersonalEvents" component={PersonalEventsScreen} 
+        options={{
+          headerTintColor: '#0C5449', 
+          title: '', 
+          headerStyle: { backgroundColor: '#E6E5E7' },
+          headerBackTitle: 'Back',
+        }}  
+        />
+        <Stack.Screen name="CreateEvent" component={CreateEventScreen} 
+        options={{
+          headerTintColor: '#0C5449', 
+          title: '', 
+          headerStyle: { backgroundColor: '#E6E5E7' },
+          headerBackTitle: 'Back',
+        }} 
+        />
         <Stack.Screen 
         name="Bookmarks" 
         component={BookmarksScreen} 
-        options={{ title: 'Bookmarks' }} 
-/>
+        options={{
+          headerTintColor: '#0C5449', 
+          title: '', 
+          headerStyle: { backgroundColor: '#E6E5E7' },
+          headerBackTitle: 'Back',
+        }}  
+        
+        />
+        <Stack.Screen name="EventsScreenAlt" component={EventsScreenAlt}
+        options={{headerShown: false}} 
+        /> 
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>

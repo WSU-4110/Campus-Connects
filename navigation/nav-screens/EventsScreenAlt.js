@@ -344,7 +344,7 @@ const EventsScreenAlt = () => {
                             name="map-pin"
                             type="font-awesome" 
                             size={13} 
-                            color="#808080" 
+                            color="#c21c31" 
                             style={{ marginRight: 5 }}
                         />
                         <Text style={styles.eventLocation} numberOfLines={1}>
@@ -411,7 +411,7 @@ const EventsScreenAlt = () => {
                             name="map-pin"
                             type="font-awesome" 
                             size={13} 
-                            color="#808080" 
+                            color="#c21c31" 
                             style={{ marginRight: 5 }}
                         />
                         <Text style={styles.eventLocation} numberOfLines={1}>{event.location || 'N/A'}</Text>

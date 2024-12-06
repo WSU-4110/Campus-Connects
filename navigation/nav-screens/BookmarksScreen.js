@@ -5,7 +5,20 @@ import { auth, db } from '../../firebase';
 import { useFonts } from 'expo-font';
 import { Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold } from '@expo-google-fonts/montserrat';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, getDocs } from 'firebase/firestore';
-import { useFocusEffect } from '@react-navigation/native'; // Ensure this import is present
+import { useFocusEffect } from '@react-navigation/native';
+
+// Function to strip HTML from the event description
+const stripHtmlTags = (html) => {
+  if (typeof html !== 'string') {
+    return ''; // Return an empty string if input is not a string
+  }
+  return html
+    .replace(/<[^>]*>/g, ' ')  // Remove HTML tags
+    .replace(/&nbsp;/g, ' ')   // Replace &nbsp; with space
+    .replace(/&[a-z]+;/gi, ' ')  // Replace other HTML entities with space
+    .replace(/\s+/g, ' ')      // Replace multiple spaces with single space
+    .trim();                   // Remove leading and trailing spaces
+};
 
 const BookmarksScreen = () => {
   const [bookmarkedEvents, setBookmarkedEvents] = useState([]);
@@ -102,6 +115,11 @@ const BookmarksScreen = () => {
       Alert.alert("Failed to update bookmark");
     }
   };
+  const formatDate = (dateString) => {
+    const date = new Date(dateString); // Convert to a Date object
+    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`; // Format as MM/DD/YYYY
+  };
+  
 
   return (
     <View style={styles.container}>
@@ -112,14 +130,40 @@ const BookmarksScreen = () => {
         renderItem={({ item }) => {
             const isBookmarked = bookmarkedEvents.some(event => event.id === item.id);
             const isWsuEvent = item.source === 'WSU';
-          
+            const eventDescription = stripHtmlTags(item.description || 'No description available');
+
             return (
               <TouchableOpacity style={styles.eventCard}>
                 <Text style={styles.eventTitle}>{isWsuEvent ? item.name : item.title}</Text>
-                <Text style={styles.eventLocation}>Location: {item.location || 'N/A'}</Text>
-                <Text style={styles.eventDate}>Date: {item.date || 'N/A'}</Text>
-                <Text style={styles.eventDescription}>Description: {item.description || 'No description available'}</Text>
-                <Text style={styles.eventTime}>Time: {item.time || 'N/A'}</Text>
+
+<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+  <Icon 
+    name="map-pin" 
+    type="font-awesome" 
+    size={13} 
+    color="#c21c31" 
+    style={{ marginRight: 5 }} 
+  />
+  <Text style={styles.eventLocation}>{item.location || 'Location: N/A'}</Text>
+</View>
+
+<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+  <Icon 
+    name="clock-o" 
+    type="font-awesome" 
+    size={14} 
+    color="black" 
+    style={{ marginRight: 5 }} 
+  />
+  <Text style={styles.eventDate}>
+  {isWsuEvent 
+    ? `${formatDate(item.startsOn)}`
+    : `${item.date}, ${item.startTime || 'N/A'}`}
+</Text>
+
+</View>
+
+<Text style={styles.eventDescription}> {eventDescription}</Text>
                 <View style={styles.bookmarkContainer}>
                   <TouchableOpacity onPress={() => toggleBookmark(item.id, isBookmarked, isWsuEvent)}>
                     <Icon
@@ -138,15 +182,60 @@ const BookmarksScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  header: { fontFamily: 'Montserrat_600SemiBold', fontSize: 16, fontWeight: 'bold', marginBottom: 20 },
-  eventCard: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#ccc' },
-  eventTitle: { fontFamily: 'Montserrat_600SemiBold', fontSize: 16, fontWeight: 'bold' },
-  eventLocation: { fontFamily: 'Montserrat_400Regular', fontSize: 14 },
-  eventDate: { fontFamily: 'Montserrat_400Regular', fontSize: 14 },
-  eventDescription: { fontFamily: 'Montserrat_400Regular', fontSize: 14, marginTop: 5 },
-  eventTime: { fontFamily: 'Montserrat_400Regular', fontSize: 14, marginTop: 5 },
-  bookmarkContainer: { marginTop: 10, alignItems: 'flex-end' },
+  container: { 
+    flex: 1, 
+    padding: 20, 
+    backgroundColor: '#E6E5E7',
+  },
+  header: { 
+    fontFamily: 'Montserrat_600SemiBold', 
+    fontSize: 18,  
+    marginBottom: 20,
+    color: '#0C5449',
+  },
+  eventCard: { 
+    padding: 15, 
+    marginBottom: 15, 
+    backgroundColor: '#FFF', 
+    borderRadius: 8, 
+    shadowColor: '#000', 
+    shadowOpacity: 0.1, 
+    shadowRadius: 5, 
+    elevation: 3, 
+  },
+  eventTitle: { 
+    fontFamily: 'Montserrat_600SemiBold', 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    color: '#0C5449', 
+  },
+  eventLocation: { 
+    fontFamily: 'Montserrat_400Regular', 
+    fontSize: 14, 
+    color: '#555', 
+  },
+  eventDate: { 
+    fontFamily: 'Montserrat_400Regular', 
+    fontSize: 14, 
+    color: '#555',
+    marginVertical: 5,
+  },
+  eventDescription: { 
+    fontFamily: 'Montserrat_400Regular', 
+    fontSize: 14, 
+    color: '#555', 
+    marginVertical: 5,
+  },
+  eventTime: { 
+    fontFamily: 'Montserrat_400Regular', 
+    fontSize: 14, 
+    color: '#555',
+    marginBottom: 10,
+  },
+  bookmarkContainer: { 
+    alignItems: 'flex-end', 
+    marginTop: 10, 
+  },
 });
 
 export default BookmarksScreen;

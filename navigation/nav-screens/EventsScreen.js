@@ -3,6 +3,7 @@ import { View, Text, FlatList, ActivityIndicator, StyleSheet, RefreshControl, Ap
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
 import { db, auth } from '../../firebase'; 
+import Icon from 'react-native-vector-icons/FontAwesome';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, setDoc, collection } from 'firebase/firestore';
 
 // Function to fetch events from the API
@@ -186,15 +187,13 @@ const EventsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.link}>Recent Events ({events.length})</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('PersonalEvents')}> 
-          <Text style={styles.link}>My Events</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('CreateEvent')}>
-          <Text style={styles.link}>Create Event</Text>
-        </TouchableOpacity>
+       <View style={styles.header}>
+        <Text style={styles.title}>Wayne State University Events</Text>
+        {/* <TouchableOpacity onPress={() => navigation.navigate('CreateEvent')}>
+          <Text style={styles.link}>Create New Event</Text>
+        </TouchableOpacity> */}
       </View>
+
       {events.length === 0 ? (
         <Text>No events found.</Text>
       ) : (
@@ -205,10 +204,29 @@ const EventsScreen = () => {
             <TouchableOpacity onPress={() => openEventDetails(item)}> 
               <View style={styles.eventItem}>
                 <Text style={styles.eventTitle}>{item.name}</Text>
-                <Text style={styles.eventLocation}>Location: {item.location}</Text>
-                <Text style={styles.eventTime}>
-                  {new Date(item.startsOn) > new Date() ? 'Starts' : 'Started'}: {new Date(item.startsOn).toLocaleString()}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                        <Icon 
+                            name="map-pin"
+                            type="font-awesome" 
+                            size={13} 
+                            color="#c21c31" 
+                            style={{ marginRight: 5 }}
+                        />
+                <Text style={styles.eventLocation}> {item.location}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                        <Icon 
+                            name="clock-o"
+                            type="font-awesome" 
+                            size={14} 
+                            color="#808080"
+                            style={{ marginRight: 5 }}
+                        />
+                        <Text style={styles.eventTime}>
+                  {new Date(item.startsOn) > new Date() ?'' : 'Started'} {new Date(item.startsOn).toLocaleString()}
                 </Text>
+                  </View>
+                
                 <Text style={styles.eventDescription} numberOfLines={3}>
                   {stripHtmlTags(item.description)}
                 </Text>
@@ -233,7 +251,6 @@ const EventsScreen = () => {
 
       {/* Modal for event details */}
       <Modal
-        animationType="slide"
         transparent={true}
         visible={modalVisible}
         onRequestClose={closeEventDetails}
@@ -245,6 +262,7 @@ const EventsScreen = () => {
                 <View>
                   <Text style={styles.modalTitle}>{selectedEvent.name}</Text>
                   <Text style={styles.modalLocation}>Location: {selectedEvent.location}</Text>
+                
                   <Text style={styles.modalTime}>
                     Starts: {new Date(selectedEvent.startsOn).toLocaleString()}
                   </Text>
@@ -274,38 +292,48 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#E6E5E7',
   },
+
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 18,
+    fontFamily: 'Montserrat_600SemiBold',
+    color: '#0C5449',
+    
   },
+  
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   eventItem: {
-    marginBottom: 15,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
+    backgroundColor: '#fff', // color of the events cards
+    padding: 15,
+    marginBottom: 10,
+    elevation: 3,
+    //borderWidth: 1,
+    //borderColor: '#ccc',
+    borderRadius: 10,
   },
   eventTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#0C5449',
+    flexWrap: 'wrap', // Allow the title to wrap to the next line
+    maxWidth: '80%',
   },
   eventLocation: {
-    color: 'grey',
+    fontSize: 14,
+    color: '#888',
   },
   eventTime: {
-    color: 'grey',
+    fontSize: 14,
+    color: '#888',
   },
   eventDescription: {
-    marginTop: 5,
+    fontSize: 14,
+    color: '#333',
   },
   bookmarkContainer: {
     position: 'absolute',

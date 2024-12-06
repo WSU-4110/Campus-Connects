@@ -4,10 +4,17 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import HomeScreen from './nav-screens/HomeScreen';
 import ProfileScreen from './nav-screens/ProfileScreen';
 import EventsScreenAlt from './nav-screens/EventsScreenAlt';
+import { useNavigation } from '@react-navigation/native';
 
 const Tab = createBottomTabNavigator();
 
 export default function MainContainer() {
+    const navigation = useNavigation();
+
+    const goToEvents = () => {
+        navigation.navigate('Events');
+    };
+
     return (
         <Tab.Navigator
             initialRouteName="Map"
@@ -42,13 +49,14 @@ export default function MainContainer() {
                 component={HomeScreen} 
                 options={{ 
                     headerTitle: 'Campus Connects',
+                    headerShown: false
                 }} 
             />
             <Tab.Screen 
                 name="Profile" 
                 component={ProfileScreen} 
                 options={{ 
-                    headerTitle: 'Profile' 
+                    headerShown: false
                 }} 
             />
         </Tab.Navigator>
